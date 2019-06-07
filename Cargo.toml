@@ -1,0 +1,22 @@
+[package]
+name = "sealrs"
+version = "0.4.0"
+authors = ["Oleg Vyalkin <ovvyalkin@gmail.com>"]
+edition = "2018"
+description = "Set of classic asynchronous primitives (Actors, Executors, Futures / Promises)"
+repository = "https://github.com/Serbis/sealrs"
+readme = "README.md"
+keywords = ["actor", "future", "promise", "async", "thread"]
+categories = ["asynchronous", "concurrency", "development-tools"]
+license = "MIT"
+
+[dependencies]
+match-downcast = "0.1.2"
+num_cpus = "1.10.0"
+timer = "0.2.0"
+chrono = "0.4"
+rand = "0.6.5"
+failure = "0.1.5"
+
+[badges]
+maintenance = { status = "experimental" }

@@ -57,9 +57,14 @@ impl DefaultDispatcher {
 
             let msg = envelope.message;
 
-            let mut actor = actor.lock().unwrap();
-            let ctx = ActorContext::new( sender.clone(), envelope.receiver.clone(), envelope.system.clone());
-            let handled = actor.receive(&msg, ctx);
+            let handled = {
+                let mut actor = actor.lock().unwrap();
+                let ctx = ActorContext::new(
+                    sender.clone(),
+                    envelope.receiver.clone(),
+                    envelope.system.clone());
+                actor.receive(&msg, ctx)
+            };
 
             if !handled {
                 let handled2 = DefaultDispatcher::internal_receive(mailbox, &msg, cell);

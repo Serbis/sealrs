@@ -10,6 +10,7 @@
 //! 7. [Actor communications](#actor-communications)
 //! 8. [ActorRef sharing](#actorref-sharing)
 //! 9. [More about DeadLetters](#more-about-deadletters)
+//! 10. [Timers](#timers)
 //!
 //! # Introduction
 //! This runtime is realize the classical actor paradigm actively used in the actor based languages,
@@ -397,6 +398,85 @@
 //!
 //! This is a regular actor reference, but all messages passed through it, will be dropped directly
 //! to the DeadLetter.
+//!
+//! # Timers
+//!
+//! Timers is the separate module which is uses for scheduling automatic message sending with a
+//! specified time-params. Main his purpose is sending messages from an actor to himself for
+//! determine timeout of various asynchronous operations. Next example demonstrates contrived actor,
+//! uses this features. Realization details was dropped for more clear understanding of the concept
+//! ( you may found full code in the examples module ).
+//!
+//! ```
+//! impl Actor for Ticker {
+//!
+//!    fn pre_start(self: &mut Self, ctx: ActorContext) {
+//!        let mut timers = Timers::new(ctx.system.clone());
+//!
+//!        timers.start_single(
+//!           0,
+//!           ctx.self_.clone(),
+//!           ctx.self_.clone(),
+//!           Duration::from_secs(1),
+//!           Box::new(SingleTick {}));
+//!
+//!        timers.start_periodic(
+//!            1,
+//!            ctx.self_.clone(),
+//!            ctx.self_.clone(),
+//!            Duration::from_secs(2),
+//!            || Box::new(PeriodicTick {}));
+//!
+//!        self.timers = Some(tsafe!(timers));
+//!    }
+//!
+//!    fn post_stop(&mut self, _ctx: ActorContext) {
+//!        self.timers.as_ref().unwrap().lock().unwrap().cancel_all();
+//!    }
+//!
+//!
+//!    fn receive(self: &mut Self, msg: &Box<Any + Send>, ctx: ActorContext) -> bool {
+//!        match_downcast_ref!(msg, {
+//!            m: SingleTick => {
+//!               println!("SingleTick");
+//!            },
+//!            m: PeriodicTick => {
+//!               if (self.ticks == 3) {
+//!                   self.timers.as_ref().unwrap().lock().unwrap().cancel(1);
+//!                   println!("PeriodicTick cancelled");
+//!               } else {
+//!                   println!("PeriodicTick");
+//!                   self.ticks = self.ticks + 1;
+//!              }
+//!           },
+//!            _ => return false
+//!        });
+//!
+//!        true
+//!    }
+//! }
+//! ```
+//!
+//! Here in the pre_start hook, creates two timers. All timers has practically identical set of
+//! arguments. You must specify key, on which timer may be cancelled, sender and receiver refs, time
+//! parameter and message for sending. First timer is the single timer, it is send message only once
+//! with one second delay. Message are sent from self to self. As message specified SingleTick
+//! structure. Second timer is the periodic timer. He will send message to the actor each two
+//! second, until he will be explicitly cancelled. Message argument contains some trick. It's accept not
+//! struct itself, but closure which produce this struct. It is due to than for each timer iteration,
+//! schedulers needs the new message. If you send to this arg a structure, it will be fully consumed at
+//! first iteration, and timer will does not have what to send. Closure used here as factory of a
+//! single message.
+//!
+//! After all timers was configured, timer object stored in the actor state. Through one second
+//! after start, the actor will receive the SingleTick message. After two, the actor will start
+//! receive the periodic message - PeriodicTick. After receive three such messages, it will cancel
+//! this timer specify the timer key in the cancel method.
+//!
+//! In post_stop hook, all timers must be canceled. If this is don't do, you risk encounter with
+//! situation, when timer will send message to dead actor and it will be dropped to DeadLetters.
+//! This situation may be more dangerous, if intervals timers exists. If don't cancel it after actor
+//! was stopped, memory leaks occurs, because actor doesn't may be dropped because of him.
 
 
 pub mod dispatcher;
@@ -416,3 +496,6 @@ pub mod synthetic_actor;
 pub mod actor_ref_factory;
 pub mod abstract_actor_system;
 pub mod local_actor_ref;
+pub mod scheduler;
+pub mod timers;
+pub mod message;

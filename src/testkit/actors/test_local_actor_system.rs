@@ -20,6 +20,8 @@ use crate::testkit::actors::test_local_actor_ref::TestLocalActorRef;
 use crate::testkit::actors::test_probe::TestProbe;
 use crate::actors::abstract_actor_ref::ActorRef;
 use std::sync::{Arc, Mutex};
+use crate::actors::scheduler::Scheduler;
+
 
 //TODO способ проверки создания актора можно реализовать через expect_actor_creation. В нем выставляется специальный флаг с рефом, который будет возвращщен после следующего вызова actor_of
 pub struct TestLocalActorSystem {
@@ -27,7 +29,8 @@ pub struct TestLocalActorSystem {
     // ------- mirror ---------
     nids: usize,
     pub dispatcher: TSafe<DefaultDispatcher>,
-    dead_letters: Option<ActorRef>
+    dead_letters: Option<ActorRef>,
+    scheduler: TSafe<Scheduler>
     // --------- end ----------
 
 }
@@ -46,7 +49,8 @@ impl TestLocalActorSystem {
         let mut system = TestLocalActorSystem {
             nids: 0,
             dispatcher: dispatcher.clone(),
-            dead_letters: None
+            dead_letters: None,
+            scheduler: tsafe!(Scheduler::new())
         };
 
         let system = tsafe!(system);
@@ -138,7 +142,13 @@ impl ActorRefFactory for TestLocalActorSystem {
     }
 }
 
-impl AbstractActorSystem for TestLocalActorSystem {}
+impl AbstractActorSystem for TestLocalActorSystem {
+
+    /// Identical to original
+    fn get_scheduler(&self) -> TSafe<Scheduler> {
+        self.scheduler.clone()
+    }
+}
 
 impl Clone for TestLocalActorSystem {
     fn clone(&self) -> Self {
@@ -150,7 +160,8 @@ impl Clone for TestLocalActorSystem {
         TestLocalActorSystem {
             nids: self.nids,
             dispatcher: self.dispatcher.clone(),
-            dead_letters: dead_letter //self.dead_letters.clone()
+            dead_letters: dead_letter, //self.dead_letters.clone()
+            scheduler: self.scheduler.clone()
         }
     }
 }

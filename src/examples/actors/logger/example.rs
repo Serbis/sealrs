@@ -3,6 +3,7 @@ use crate::actors::actor_ref_factory::ActorRefFactory;
 use crate::examples::actors::logger::logger;
 use crate::examples::actors::logger::stdout_writer;
 use crate::examples::actors::logger::file_writer;
+use std::thread;
 
 pub fn run() {
     let mut system = LocalActorSystem::new();
@@ -16,4 +17,6 @@ pub fn run() {
 
     logger.tell(Box::new(logger::Log { text: String::from("To file log"), target: logger::LogTarget::File }), None);
     logger.tell(Box::new(logger::Log { text: String::from("To stdout log"), target: logger::LogTarget::StdOut }), None);
+
+    thread::park();
 }

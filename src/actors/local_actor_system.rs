@@ -15,6 +15,7 @@ use crate::actors::abstract_actor_system::AbstractActorSystem;
 use crate::actors::local_actor_ref::LocalActorRef;
 use crate::actors::abstract_actor_ref::ActorRef;
 use std::sync::{Arc, Mutex};
+use crate::actors::scheduler::Scheduler;
 
 
 pub struct LocalActorSystem {
@@ -27,7 +28,10 @@ pub struct LocalActorSystem {
     /// Dead letter actor reference. Sending message through this reference has is very low cost,
     /// because message after drop to the mailbox, is simply destroyed without hes subsequent
     /// execution planning. */
-    dead_letters: Option<ActorRef>
+    dead_letters: Option<ActorRef>,
+
+    /// Internal tasks scheduler
+    scheduler: TSafe<Scheduler>
 }
 
 impl LocalActorSystem {
@@ -38,7 +42,8 @@ impl LocalActorSystem {
         let mut system = LocalActorSystem {
             nids: 0,
             dispatcher: dispatcher.clone(),
-            dead_letters: None
+            dead_letters: None,
+            scheduler: tsafe!(Scheduler::new())
         };
 
         let system = tsafe!(system);
@@ -137,6 +142,10 @@ impl ActorRefFactory for LocalActorSystem {
 
 impl AbstractActorSystem for LocalActorSystem {
 
+    /// Returns actor system scheduler
+    fn get_scheduler(&self) -> TSafe<Scheduler> {
+        self.scheduler.clone()
+    }
 }
 
 impl Clone for LocalActorSystem {
@@ -149,7 +158,8 @@ impl Clone for LocalActorSystem {
         LocalActorSystem {
             nids: self.nids,
             dispatcher: self.dispatcher.clone(),
-            dead_letters: dead_letter //self.dead_letters.clone()
+            dead_letters: dead_letter, //self.dead_letters.clone()
+            scheduler: self.scheduler.clone()
         }
     }
 }

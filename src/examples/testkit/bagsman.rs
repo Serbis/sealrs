@@ -100,7 +100,7 @@ impl Actor for BagsMan {
         true
     }
 
-    fn as_any(self: &Self) -> &Any { self }
+    fn as_any(&mut self) -> &Any { self }
 }
 
 

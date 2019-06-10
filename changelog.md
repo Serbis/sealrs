@@ -1,3 +1,7 @@
+# 0.5.0
+
+Timers module
+
 # 0.4.0
 
 Developed basic future / promise functional in completable and asynchronous promises. Created basic functional of the futures in part of basic functional combinators (map, flat_map, recovery, on_complete).

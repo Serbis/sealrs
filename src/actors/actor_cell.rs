@@ -14,6 +14,8 @@ use crate::actors::abstract_actor_system::AbstractActorSystem;
 use crate::actors::envelope::Envelope;
 use crate::actors::abstract_actor_ref::AbstractActorRef;
 use crate::actors::local_actor_ref::LocalActorRef;
+use crate::actors::timers::Timers;
+use std::sync::{Arc, Mutex};
 use std::any::Any;
 
 
@@ -43,7 +45,7 @@ pub struct ActorCell {
     pub suspended: bool,
 
     /// Stop flag. See the start method description for more details
-    pub stopped: bool
+    pub stopped: bool,
 }
 
 impl ActorCell {

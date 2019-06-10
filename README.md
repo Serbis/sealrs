@@ -13,9 +13,7 @@ This library have a very reach documentation with big count of examples and expl
 
 # New in release
 
-Developed basic future / promise functional in completable and asynchronous promises. Created basic functional of the future in part of basic functional combinators (map, flat_map, recovery, on_complete).
-
-At this moment, future / promises is fully usable and may be applied to the real development.
+Developed timers module intended for message passing planning between actors. See example of usage in his section in the (doc)[https://docs.rs/sealrs/*/sealrs/actors/index.html#timers].
 
 See [changelog](https://github.com/Serbis/sealrs/blob/master/changelog.md) for info about new releases.
 

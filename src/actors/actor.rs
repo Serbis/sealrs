@@ -2,14 +2,16 @@
 //!
 //! This trait must be realized by the structure, which want to be involved to the system as
 //! a particular actor.
+use crate::common::tsafe::TSafe;
 use crate::actors::actor_context::ActorContext;
+use crate::actors::timers::Timers;
 use std::any::Any;
 
 pub trait Actor {
-    fn pre_start(self: &mut Self, _ctx: ActorContext) {}
-    fn post_stop(self: &mut Self, _ctx: ActorContext) {}
-    fn receive(self: &mut Self, msg: &Box<Any + Send>, ctx: ActorContext) -> bool;
-    fn as_any(self: &Self) -> &Any {
+    fn pre_start(&mut self, _ctx: ActorContext) {}
+    fn post_stop(&mut self, _ctx: ActorContext) {}
+    fn receive(&mut self, msg: &Box<Any + Send>, ctx: ActorContext) -> bool;
+    fn as_any(&mut self) -> &Any {
         panic!()
     }
 }

@@ -1,6 +1,7 @@
 use crate::actors::local_actor_system::LocalActorSystem;
 use crate::actors::actor_ref_factory::ActorRefFactory;
 use crate::examples::actors::basic::basic_actor;
+use std::thread;
 
 pub fn run() {
     let mut system = LocalActorSystem::new();
@@ -10,4 +11,6 @@ pub fn run() {
 
     let msg = Box::new(basic_actor::Print { text: String::from("Hello world!") });
     printer.tell(msg, None);
+
+    thread::park();
 }

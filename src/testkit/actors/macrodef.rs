@@ -20,7 +20,7 @@
 #[macro_export]
 macro_rules! matcher {
         ($value:ident => $body:expr) => {
-            Box::new(|$value: &Box<Any + Send>| {
+            Box::new(move |$value: &Box<Any + Send>| {
                 $body
             })
         };
@@ -37,7 +37,7 @@ macro_rules! matcher {
 #[macro_export]
 macro_rules! type_matcher {
         ($t:path) => {
-            Box::new(|v: &Box<Any + Send>| {
+            Box::new(move |v: &Box<Any + Send>| {
                 if let Some(_) = v.downcast_ref::<$t>() {
                    true
                 } else {
@@ -62,7 +62,7 @@ macro_rules! type_matcher {
 #[macro_export]
 macro_rules! pat_matcher {
         ($t:path => $pat:pat) => {
-            Box::new(|v: &Box<Any + Send>| {
+            Box::new(move |v: &Box<Any + Send>| {
                 if let Some(m) = v.downcast_ref::<$t>() {
                     match m {
                          $pat => true,
@@ -96,7 +96,7 @@ macro_rules! pat_matcher {
 #[macro_export]
 macro_rules! extended_type_matcher {
         ($t:path , $v:ident => $body:expr) => {
-            Box::new(|v: &Box<Any + Send>| {
+            Box::new(move |v: &Box<Any + Send>| {
                 if let Some($v) = v.downcast_ref::<$t>() {
                    $body
                 } else {

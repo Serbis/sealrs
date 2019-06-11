@@ -14,6 +14,7 @@
 * Basic supervision
 * Basic remoting
 * Batch messages processing
+* Configs
 
 * Extended future combinators
 * actor_of hook in testkit

@@ -1,3 +1,7 @@
+# 0.6.1
+
+Small edits in the matchers (testkit) logic (move in closures)
+
 # 0.6.0
 
 * Change public api in parts of ActorRef's passing

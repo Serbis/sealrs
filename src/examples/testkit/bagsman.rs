@@ -140,7 +140,16 @@ mod tests {
             };
 
             probe.send(&mut target, Box::new( commands::MsgOk { data: 99 } ));
-            probe.expect_msg(pat_matcher!(responses::MsgResponse => responses::MsgResponse { data: 99 }));
+            let x = 0;
+            probe.expect_msg(extended_type_matcher!(responses::MsgResponse, v => {
+                if v.data > x {
+                    true
+                } else {
+                    false
+                }
+            }));
+
+            //probe.expect_msg(pat_matcher!(responses::MsgResponse => responses::MsgResponse { data: 99 }));
         }
 
         // This test will failed, uncomment for enable

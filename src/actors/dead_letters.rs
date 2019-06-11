@@ -4,7 +4,7 @@
 //!
 use crate::actors::mailbox::Mailbox;
 use crate::actors::envelope::Envelope;
-use crate::actors::abstract_actor_ref::AbstractActorRef;
+use crate::actors::abstract_actor_ref::ActorRef;
 
 pub struct DeadLetters {
     is_planned: bool
@@ -59,5 +59,5 @@ impl Mailbox for DeadLetters {
     }
 
     /// Do nothing
-    fn clean_up(self: &mut Self, _sender: Box<AbstractActorRef>, _dead_letters: Box<AbstractActorRef>) {}
+    fn clean_up(self: &mut Self, _sender: ActorRef, _dead_letters: ActorRef) {}
 }

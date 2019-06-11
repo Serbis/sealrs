@@ -11,6 +11,7 @@
 //! 8. [ActorRef sharing](#actorref-sharing)
 //! 9. [More about DeadLetters](#more-about-deadletters)
 //! 10. [Timers](#timers)
+//! 11. [Watching](#watching)
 //!
 //! # Introduction
 //! This runtime is realize the classical actor paradigm actively used in the actor based languages,
@@ -21,6 +22,9 @@
 //! * Untyped actors with exchanged the messages derived from Any trait
 //! * Actor lifetime management
 //! * DeadLetters
+//! * TestKit
+//! * Timers
+//! * Watching
 //!
 //! # Perspective features:
 //! Under this features already exists architectural basis, and their implementation is a question
@@ -28,11 +32,10 @@
 //!
 //! * Mailboxes with user defined functional
 //! * Various dispatchers realizations
-//! * Watching
 //! * Supervising
-//! * Timers
 //! * FSM
-//! * TestKit
+//! * Distributed actor systems
+//!
 //!
 //! # Architecture elements
 //!
@@ -282,11 +285,11 @@
 //!                match m.target {
 //!                    LogTarget::File => {
 //!                        let msg = Box::new(file_writer::Write { text: m.text.to_string() });
-//!                        self.file_writer.tell(msg , Some(ctx.self_))
+//!                        self.file_writer.tell(msg , Some(&ctx.self_))
 //!                    },
 //!                    LogTarget::StdOut => {
 //!                        let msg = Box::new(stdout_writer::Write { text: m.text.to_string() });
-//!                        self.stdout_writer.tell(msg, Some(ctx.self_))
+//!                        self.stdout_writer.tell(msg, Some(&ctx.self_))
 //!                    }
 //!                };
 //!            },
@@ -311,7 +314,7 @@
 //!            m: Write => {
 //!               println!("{}", m.text);
 //!               let resp = Box::new(Ok { chars_count: m.text.len() });
-//!               ctx.sender.tell(resp, Some(ctx.self_));
+//!               ctx.sender.tell(resp, Some(&ctx.self_));
 //!            },
 //!            _ => return false
 //!        });
@@ -326,7 +329,7 @@
 //!            m: Write => {
 //!               fs::write(&self.file, m.text.as_bytes());
 //!               let resp = Box::new(Ok { chars_count: m.text.len() });
-//!               ctx.sender.tell(resp, Some(ctx.self_));
+//!               ctx.sender.tell(resp, Some(&ctx.self_));
 //!            },
 //!            _ => return false
 //!        });
@@ -415,15 +418,15 @@
 //!
 //!        timers.start_single(
 //!           0,
-//!           ctx.self_.clone(),
-//!           ctx.self_.clone(),
+//!           &ctx.self_,
+//!           &ctx.self_,
 //!           Duration::from_secs(1),
 //!           Box::new(SingleTick {}));
 //!
 //!        timers.start_periodic(
 //!            1,
-//!            ctx.self_.clone(),
-//!            ctx.self_.clone(),
+//!            &ctx.self_,
+//!            &ctx.self_,
 //!            Duration::from_secs(2),
 //!            || Box::new(PeriodicTick {}));
 //!
@@ -477,6 +480,38 @@
 //! situation, when timer will send message to dead actor and it will be dropped to DeadLetters.
 //! This situation may be more dangerous, if intervals timers exists. If don't cancel it after actor
 //! was stopped, memory leaks occurs, because actor doesn't may be dropped because of him.
+//!
+//! # Watching
+//!
+//! Each actor have special set of internal events. When event from this set occurs, it's passed
+//! to the internal event bus. Watching allows one actor to subscribe to another actor's events.
+//! Most significant usege of this technique is tracking of terminating of watched actors. You may
+//! subscribe actor for events of another actor in the following way:
+//!
+//! ```
+//! ctx.system.lock().unwrap().watch(&ctx.self_, &self.target);
+//! ```
+//!
+//! First argument of the watch function is the reference to actor which will be subscribed for
+//! events of the actor specified in the second argument. After that subscriber, will be receive
+//! special messages always when some events occurs with the target actor. For now exists next event
+//! types:
+//!
+//! * Terminated - occurs when watched actor is fully stopped (event occurs right after post_stop
+//! hook was called).
+//!
+//! Actor may unsubscribes from actor events in similar way, using function unwatch:
+//!
+//! ```
+//! ctx.system.lock().unwrap().unwatch(&ctx.self_, &self.target);
+//! ```
+//!
+//! Caution about unwatching. You must always explicitly call unwatch method, before actor (which is
+//! watch to another actors) will be stopped. This is non critical, but if you don't do it, this
+//! cause to full walk of event bus tree for search and remove stopped actor from subscribers of
+//! events. It may be extremely expensive operation if on the event bus exists many observed actors.
+//!
+//! You may see full example usage of watching in the 'examples/actors/watch' submodule.
 
 
 pub mod dispatcher;
@@ -499,3 +534,4 @@ pub mod local_actor_ref;
 pub mod scheduler;
 pub mod timers;
 pub mod message;
+pub mod watcher;

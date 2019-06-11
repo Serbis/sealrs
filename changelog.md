@@ -1,3 +1,10 @@
+# 0.6.0
+
+* Change public api in parts of ActorRef's passing
+* Developed watch event bus
+* Upgraded TestProbe (watch, expect_terminated)
+* Integrations with debug log's
+
 # 0.5.0
 
 Timers module

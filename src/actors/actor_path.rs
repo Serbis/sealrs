@@ -4,6 +4,7 @@
 //! checks and for many other things.
 //!
 use std::fmt;
+use std::hash::{Hash, Hasher};
 
 pub struct ActorPath {
 
@@ -41,3 +42,9 @@ impl PartialEq for ActorPath {
 }
 
 impl Eq for ActorPath {}
+
+impl Hash for ActorPath {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.name.hash(state);
+    }
+}

@@ -32,7 +32,7 @@ impl Actor for StdoutWriter {
             m: Write => {
                println!("{}", m.text);
                let resp = Box::new(Ok { chars_count: m.text.len() });
-               ctx.sender.tell(resp, Some(ctx.self_));
+               ctx.sender.tell(resp, Some(&ctx.self_));
             },
             _ => return false
         });

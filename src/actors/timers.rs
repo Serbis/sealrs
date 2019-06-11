@@ -10,7 +10,6 @@ use crate::actors::message::Message;
 use crate::actors::scheduler::TaskGuard;
 use crate::actors::abstract_actor_ref::ActorRef;
 use std::collections::HashMap;
-use std::sync::{Mutex, Arc};
 use std::time::Duration;
 use std::sync::mpsc::channel;
 
@@ -30,7 +29,7 @@ impl Timers {
     /// Starts single timer task. Accept as args - key, refs to self and receiver of message, delay
     /// and message for send. For example see module level doc or example actor in the examples
     /// module.
-    pub fn start_single(&mut self, key: u32, self_: ActorRef, mut to: ActorRef, delay: Duration, msg: Message)
+    pub fn start_single(&mut self, key: u32, self_: &ActorRef, mut to: &ActorRef, delay: Duration, msg: Message)
     {
         let (msg_sender, msg_receiver) = channel();
         let (self_sender, self_receiver) = channel();
@@ -43,20 +42,20 @@ impl Timers {
             let self_ = self_receiver.recv().unwrap();
             let mut to: ActorRef = to_receiver.recv().unwrap();
 
-            to.tell(msg, Some(self_));
+            to.tell(msg, Some(&self_));
         });
 
         self.tasks.insert(key, guard);
 
         msg_sender.send(msg);
-        self_sender.send(self_);
-        to_sender.send(to);
+        self_sender.send((*self_).clone());
+        to_sender.send((*to).clone());
     }
 
     /// Starts single timer task. Accept as args - key, refs to self and receiver of message, delay
     /// and closure which produce a message for send. For example see the module level doc or
     /// example actor in the examples module.
-    pub fn start_periodic<M>(&mut self, key: u32, self_: ActorRef, mut to: ActorRef, interval: Duration, msg: M)
+    pub fn start_periodic<M>(&mut self, key: u32, self_: &ActorRef, mut to: &ActorRef, interval: Duration, msg: M)
         where M: 'static + Fn() -> Message + Send
     {
         let (msg_sender, msg_receiver) = channel();
@@ -73,7 +72,7 @@ impl Timers {
             let self_: ActorRef = self_receiver.recv().unwrap();
             let mut to: ActorRef = to_receiver.recv().unwrap();
 
-            to.tell(msg(), Some(self_.clone()));
+            to.tell(msg(), Some(&self_));
 
             msg_sender_clone.send(msg);
             self_sender_clone.send(self_);
@@ -83,8 +82,8 @@ impl Timers {
         self.tasks.insert(key, guard);
 
         msg_sender.send(Box::new(msg));
-        self_sender.send(self_);
-        to_sender.send(to);
+        self_sender.send((*self_).clone());
+        to_sender.send((*to).clone());
     }
 
     /// Cancel timer by it's key

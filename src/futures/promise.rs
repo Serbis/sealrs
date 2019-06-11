@@ -8,10 +8,7 @@
 //! executed - synchronous, asynchronously or otherwise. For more detailed descriptions of what
 //! specific promise does as well as the logic of the future, see the corresponding implementations.
 
-use super::future::{Future, WrappedFuture};
-use crate::common::tsafe::TSafe;
-use std::sync::{Arc, Mutex};
-
+use super::future::{WrappedFuture};
 
 pub trait Promise<V: Send + Clone, E: Send + Clone> {
 

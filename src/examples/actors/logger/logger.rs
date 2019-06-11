@@ -44,11 +44,11 @@ impl Actor for Logger {
                 match m.target {
                     LogTarget::File => {
                         let msg = Box::new(file_writer::Write { text: m.text.to_string() });
-                        self.file_writer.tell(msg , Some(ctx.self_))
+                        self.file_writer.tell(msg , Some(&ctx.self_))
                     },
                     LogTarget::StdOut => {
                         let msg = Box::new(stdout_writer::Write { text: m.text.to_string() });
-                        self.stdout_writer.tell(msg, Some(ctx.self_))
+                        self.stdout_writer.tell(msg, Some(&ctx.self_))
                     }
                 };
             },

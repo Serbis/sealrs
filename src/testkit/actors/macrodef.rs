@@ -38,7 +38,7 @@ macro_rules! matcher {
 macro_rules! type_matcher {
         ($t:path) => {
             Box::new(|v: &Box<Any + Send>| {
-                if let Some(m) = v.downcast_ref::<$t>() {
+                if let Some(_) = v.downcast_ref::<$t>() {
                    true
                 } else {
                     false

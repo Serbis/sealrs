@@ -13,9 +13,9 @@ use crate::actors::actor_path::ActorPath;
 use crate::actors::abstract_actor_system::AbstractActorSystem;
 use crate::actors::envelope::Envelope;
 use crate::actors::abstract_actor_ref::AbstractActorRef;
+use crate::actors::abstract_actor_ref::ActorRef;
 use crate::actors::local_actor_ref::LocalActorRef;
-use crate::actors::timers::Timers;
-use std::sync::{Arc, Mutex};
+use crate::actors::watcher::WatchingEvents;
 use std::any::Any;
 
 
@@ -90,12 +90,13 @@ impl ActorCell {
     pub fn stop(self: &mut Self, boxed_self: TSafe<ActorCell>) {
         self.stopped = true;
 
-        let self_ =  Box::new(LocalActorRef::new(boxed_self, self.path.clone()));
+        let self_: ActorRef =  Box::new(LocalActorRef::new(boxed_self, self.path.clone()));
         let sender = self.system.lock().unwrap().dead_letters();
         let system = self.system.clone();
 
-        let ctx = ActorContext::new(sender, self_, system);
+        let ctx = ActorContext::new(sender, self_.clone(), system);
         self.actor.lock().unwrap().post_stop(ctx);
+        self.system.lock().unwrap().register_watch_event(&self_, WatchingEvents::Terminated);
     }
 
     /// Suspends the actor. Prohibits receiving new messages.
@@ -110,7 +111,7 @@ impl ActorCell {
     pub fn send(self: &mut Self,
                 boxed_self: &TSafe<ActorCell>,
                 msg: Box<Any + Send + 'static>,
-                rself: Option<Box<AbstractActorRef + Send>>,
+                rself: Option<ActorRef>,
                 to_ref: Box<AbstractActorRef + Send>) {
 
         // If cell does not receive new messages, drops message to the deadLetter
@@ -125,6 +126,7 @@ impl ActorCell {
                 rself,
                 to_ref,
                 self.system.clone());
+
 
             self.dispatcher.lock().unwrap().dispatch(
                 boxed_self.clone(),

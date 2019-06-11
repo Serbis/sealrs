@@ -37,15 +37,15 @@ impl Actor for Ticker {
 
         timers.start_single(
             0,
-            ctx.self_.clone(),
-            ctx.self_.clone(),
+            &ctx.self_,
+            &ctx.self_,
             Duration::from_secs(1),
             Box::new(SingleTick {}));
 
         timers.start_periodic(
             1,
-            ctx.self_.clone(),
-            ctx.self_.clone(),
+            &ctx.self_,
+            &ctx.self_,
             Duration::from_secs(2),
             || Box::new(PeriodicTick {}));
 
@@ -58,13 +58,13 @@ impl Actor for Ticker {
     }
 
 
-    fn receive(self: &mut Self, msg: &Box<Any + Send>, ctx: ActorContext) -> bool {
+    fn receive(self: &mut Self, msg: &Box<Any + Send>, _ctx: ActorContext) -> bool {
         match_downcast_ref!(msg, {
-            m: SingleTick => {
+            _m: SingleTick => {
                 println!("SingleTick");
             },
-             m: PeriodicTick => {
-                if (self.ticks == 3) {
+            _m: PeriodicTick => {
+                if self.ticks == 3 {
                     self.timers.as_ref().unwrap().lock().unwrap().cancel(1);
                     println!("PeriodicTick cancelled");
                 } else {

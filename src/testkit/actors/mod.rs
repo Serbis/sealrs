@@ -93,7 +93,13 @@
 //! * expect_msg_any_of - Expects any message from the presented set
 //! * expect_msg_all_off - Expects all message from the presented set. Order of the messages is not
 //! determined. Also target messages may to alternate with message does not from set.
-//! * expect_no_msg - Expects that no one message will be received in the specified time interval
+//! * expect_no_msg - Expects that no one message will be received in the specified time interval.
+//! * expect_terminated - Expects that specified actor will be stopped. Before perform this
+//! expectations, probe must be watch target actor:
+//!
+//! ```
+//! probe.watch(&target);
+//! ```
 //!
 //! Now what with matchers. Matcher is a function with next signature:
 //!

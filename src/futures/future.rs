@@ -10,7 +10,6 @@ use super::promise::Promise;
 use super::async_promise::AsyncPromise;
 use crate::common::tsafe::TSafe;
 use crate::executors::executor::Executor;
-use std::any::Any;
 use std::sync::{Arc, Mutex};
 
 /// Wrapper for future. This object encapsulate original future and allows to user set of

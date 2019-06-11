@@ -2,9 +2,7 @@
 //!
 //! This trait must be realized by the structure, which want to be involved to the system as
 //! a particular actor.
-use crate::common::tsafe::TSafe;
 use crate::actors::actor_context::ActorContext;
-use crate::actors::timers::Timers;
 use std::any::Any;
 
 pub trait Actor {

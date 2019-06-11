@@ -37,7 +37,7 @@ impl Actor for FileWriter {
             m: Write => {
                fs::write(&self.file, m.text.as_bytes());
                let resp = Box::new(Ok { chars_count: m.text.len() });
-               ctx.sender.tell(resp, Some(ctx.self_));
+               ctx.sender.tell(resp, Some(&ctx.self_));
             },
             _ => return false
         });

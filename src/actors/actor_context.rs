@@ -3,10 +3,7 @@
 //! This object will constructs for each new message received by an actor
 use crate::actors::abstract_actor_system::AbstractActorSystem;
 use crate::actors::abstract_actor_ref::AbstractActorRef;
-use crate::actors::actor_cell::ActorCell;
-use crate::actors::timers::Timers;
 use crate::common::tsafe::TSafe;
-use std::sync::MutexGuard;
 
 pub struct ActorContext {
 

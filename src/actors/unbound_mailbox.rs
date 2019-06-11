@@ -7,7 +7,7 @@
 use crate::actors::mailbox::Mailbox;
 use crate::actors::envelope::Envelope;
 use std::collections::vec_deque::VecDeque;
-use crate::actors::abstract_actor_ref::AbstractActorRef;
+use crate::actors::abstract_actor_ref::ActorRef;
 
 pub struct UnboundMailbox {
     is_planned: bool,
@@ -46,12 +46,12 @@ impl Mailbox for UnboundMailbox {
     }
 
     /// Drops all messages to the DeadLetter
-    fn clean_up(self: &mut Self, sender: Box<AbstractActorRef>, dead_letters: Box<AbstractActorRef>) {
+    fn clean_up(self: &mut Self, sender: ActorRef, dead_letters: ActorRef) {
         let mut dead_letters = dead_letters;
 
         while true {
             if self.queue.len() > 0 {
-                dead_letters.tell(Box::new(self.queue.pop_front().unwrap()), Some(sender.clone()));
+                dead_letters.tell(Box::new(self.queue.pop_front().unwrap()), Some(&sender));
             } else {
                 break;
             }

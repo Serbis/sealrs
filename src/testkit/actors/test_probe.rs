@@ -10,6 +10,7 @@ use crate::actors::actor_ref_factory::ActorRefFactory;
 use crate::actors::abstract_actor_ref::ActorRef;
 use crate::actors::actor::Actor;
 use crate::actors::props::Props;
+use crate::actors::watcher::events::Terminated;
 use crate::actors::actor_context::ActorContext;
 use std::sync::{Arc, Mutex, Condvar};
 use std::any::Any;
@@ -113,14 +114,14 @@ impl TestProbe {
     }
 
     /// Send message to some actor
-    pub fn send(&mut self, mut target: ActorRef, msg: Box<Any + Send>) {
-        target.tell(msg, Some(self.inner_actor.clone()))
+    pub fn send(&mut self, target: &mut ActorRef, msg: Box<Any + Send>) {
+        target.tell(msg, Some(&self.inner_actor))
     }
 
     /// Reply to the last sender with specified message
     pub fn reply(&mut self, msg: Box<Any + Send>) {
         let mut last_sender = self.last_sender.lock().unwrap();
-        last_sender.tell(msg, Some(self.inner_actor.clone()))
+        last_sender.tell(msg, Some(&self.inner_actor))
     }
 
     /// Expect a single message from an actor. Blocks called thread while message will be received or
@@ -338,6 +339,13 @@ impl TestProbe {
     }
 
     /// Expect than no one actor do not send message to this probe in specified time duration
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// probe.expect_no_msg(Duration::from_secs(1));
+    /// ```
+    ///
     pub fn expect_no_msg(&mut self, duration: Duration) {
         // Clean last match result
         //*self.match_result.lock().unwrap() = None;
@@ -369,6 +377,62 @@ impl TestProbe {
                 panic!("Test probe '{}' failed in 'expect_no_msg' with check error ( message was received but should not )", &self.name);
             }
         }
+    }
+
+    /// Expect termination of the target. Probe must be watch it before cull this expector.
+    ///
+    /// # Example
+    ///
+    /// ```
+    ///  probe.watch(&target);
+    ///  // Some other code
+    ///  probe.expect_terminated(&target);
+    /// ```
+    ///
+    pub fn expect_terminated(&mut self, target: &ActorRef) {
+        let terminated_matcher = type_matcher!(Terminated);
+        // Set current matcher
+        *self.matchers.lock().unwrap() = vec![terminated_matcher];
+        *self.match_results.lock().unwrap() = vec![None];
+
+        // Start timer
+        let _guard = self.run_probe_timer(self.timeout);
+
+        // This sleep is need for prevent skip unlocking from the probe actor if it receive message
+        // early than this code is executed
+        thread::sleep(Duration::from_millis(50));
+
+        // Permits actor process messages
+        *self.actor_may_work.lock().unwrap() = true;
+
+        // Notify probe actor for unlock (if it was locked)
+        self.actor_cvar.notify_one();
+
+        // Lock current thread for waiting result of timeout
+        self.lock();
+
+
+        let result = self.match_results.lock().unwrap();
+
+        if result[0].is_some() {
+            let r = result[0].unwrap();
+            if r == false {
+                panic!("Test probe '{}' failed in 'expect_terminated' with check error ( target must be terminated but instead sent some message )", &self.name);
+            } else {
+                if self.last_sender.lock().unwrap().path() != target.path() {
+                    panic!("Test probe '{}' failed in 'expect_terminated' with check error ( actor terminated, but not target )", &self.name);
+
+                }
+            }
+        } else {
+            panic!("Test probe '{}' failed in 'expect_terminated' with timeout {} ms", &self.name, self.timeout.as_millis());
+        }
+    }
+
+    /// Subscribe probe fot watching events of target
+    pub fn watch(&mut self, target: &ActorRef) {
+        self.system.lock().unwrap().watch(&self.inner_actor, target);
+        //unwatch in drop and actor stop
     }
 
     /// Internal locker for awaiting messages from the internal actor or timeout
@@ -462,4 +526,3 @@ impl Actor for TestProbeActor {
     }
 
 }
-//TODO что насчет удаления пробки после дропа - что происходит с актором?

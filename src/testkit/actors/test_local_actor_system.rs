@@ -19,6 +19,8 @@ use crate::actors::abstract_actor_system::AbstractActorSystem;
 use crate::testkit::actors::test_local_actor_ref::TestLocalActorRef;
 use crate::testkit::actors::test_probe::TestProbe;
 use crate::actors::abstract_actor_ref::ActorRef;
+use crate::actors::watcher::WatchingEvents;
+use crate::actors::watcher::Watcher;
 use std::sync::{Arc, Mutex};
 use crate::actors::scheduler::Scheduler;
 
@@ -30,7 +32,8 @@ pub struct TestLocalActorSystem {
     nids: usize,
     pub dispatcher: TSafe<DefaultDispatcher>,
     dead_letters: Option<ActorRef>,
-    scheduler: TSafe<Scheduler>
+    scheduler: TSafe<Scheduler>,
+    watcher: TSafe<Watcher>
     // --------- end ----------
 
 }
@@ -50,7 +53,8 @@ impl TestLocalActorSystem {
             nids: 0,
             dispatcher: dispatcher.clone(),
             dead_letters: None,
-            scheduler: tsafe!(Scheduler::new())
+            scheduler: tsafe!(Scheduler::new()),
+            watcher: tsafe!(Watcher::new())
         };
 
         let system = tsafe!(system);
@@ -140,6 +144,16 @@ impl ActorRefFactory for TestLocalActorSystem {
         }
         // --------- end ----------
     }
+
+    /// Register watcher for receive 'watching events' from observed actor
+    fn watch(&mut self, watcher: &ActorRef, mut observed: &ActorRef) {
+        self.watcher.lock().unwrap().watch(watcher, observed);
+    }
+
+    /// Unregister watcher from receive 'watching events' from observed actor
+    fn unwatch(&mut self, mut watcher: &ActorRef, mut observed: &ActorRef) {
+        self.watcher.lock().unwrap().unwatch(watcher, observed);
+    }
 }
 
 impl AbstractActorSystem for TestLocalActorSystem {
@@ -147,6 +161,11 @@ impl AbstractActorSystem for TestLocalActorSystem {
     /// Identical to original
     fn get_scheduler(&self) -> TSafe<Scheduler> {
         self.scheduler.clone()
+    }
+
+    /// Register new watching event from the specified actor
+    fn register_watch_event(&self, from: &ActorRef, event: WatchingEvents) {
+        self.watcher.lock().unwrap().register_event(&from, event);
     }
 }
 
@@ -161,7 +180,8 @@ impl Clone for TestLocalActorSystem {
             nids: self.nids,
             dispatcher: self.dispatcher.clone(),
             dead_letters: dead_letter, //self.dead_letters.clone()
-            scheduler: self.scheduler.clone()
+            scheduler: self.scheduler.clone(),
+            watcher: self.watcher.clone()
         }
     }
 }

@@ -5,6 +5,7 @@ use crate::common::tsafe::TSafe;
 use crate::actors::actor_cell::ActorCell;
 use crate::actors::abstract_actor_ref::{AbstractActorRef, ActorRef};
 use crate::actors::actor_path::ActorPath;
+use std::hash::{Hash, Hasher};
 use std::fmt;
 use std::any::Any;
 
@@ -46,15 +47,15 @@ impl AbstractActorRef for LocalActorRef {
      /// ```
      ///
      /// ```
-    fn tell(self: &mut Self, msg: Box<Any + Send + 'static>, rself: Option<Box<AbstractActorRef + Send>>) {
+    fn tell(self: &mut Self, msg: Box<Any + Send + 'static>, rself: Option<&ActorRef>) {
         let cell_cloned = self.cell.clone();
         let path_cloned = self.path.clone();
         let toref = Box::new(LocalActorRef::new(cell_cloned, path_cloned));
         let mut cell = self.cell.lock().unwrap();
-        cell.send(&self.cell, msg, rself, toref)    }
+        cell.send(&self.cell, msg, rself.map_or(None, |v| Some((*v).clone())), toref)    }
 
     /// Return copy of the actor path object
-    fn path(self: &mut Self) -> ActorPath {
+    fn path(&self) -> ActorPath {
         self.path.lock().unwrap().clone()
     }
 
@@ -87,11 +88,16 @@ impl fmt::Display for LocalActorRef {
 }*/
 
 impl PartialEq for LocalActorRef {
-    fn eq(&self, _other: &Self) -> bool {
-        true
-        //self.path == other.path
+    fn eq(&self, other: &Self) -> bool {
+        *self.path.lock().unwrap() == *other.path.lock().unwrap()
     }
 }
 
 impl Eq for LocalActorRef {}
+
+impl Hash for LocalActorRef {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.path.lock().unwrap().hash(state);
+    }
+}
 

@@ -24,6 +24,7 @@ mod commands {
     pub struct MsgNoResponse { pub data: u32 }
     pub struct ToRef { }
     pub struct MutState { pub data: u32 }
+    pub struct Bomb {}
 }
 
 mod responses {
@@ -53,45 +54,48 @@ impl Actor for BagsMan {
 
     fn receive(self: &mut Self, msg: &Box<Any + Send>, mut ctx: ActorContext) -> bool {
         match_downcast_ref!(msg, {
-            m: commands::MsgOk => {
-                ctx.sender.tell(Box::new(responses::MsgResponse {data: 99} ), Some(ctx.self_.clone()))
+            _m: commands::MsgOk => {
+                ctx.sender.tell(Box::new(responses::MsgResponse {data: 99} ), Some(&ctx.self_))
             },
-            m: commands::MsgOk2 => {
-                ctx.sender.tell(Box::new(responses::MsgResponse2 {data: 99} ), Some(ctx.self_.clone()))
+            _m: commands::MsgOk2 => {
+                ctx.sender.tell(Box::new(responses::MsgResponse2 {data: 99} ), Some(&ctx.self_))
             },
-            m: commands::MsgOk3 => {
-                ctx.sender.tell(Box::new(responses::MsgResponse4 {data: 99} ), Some(ctx.self_.clone()))
+            _m: commands::MsgOk3 => {
+                ctx.sender.tell(Box::new(responses::MsgResponse4 {data: 99} ), Some(&ctx.self_))
             },
-            m: commands::MsgOk4 => {
-                ctx.sender.tell(Box::new(responses::MsgResponse {data: 99} ), Some(ctx.self_.clone()));
-                ctx.sender.tell(Box::new(responses::MsgResponse2 {data: 99} ), Some(ctx.self_.clone()));
-                ctx.sender.tell(Box::new(responses::MsgResponse3 {data: 99} ), Some(ctx.self_.clone()))
+            _m: commands::MsgOk4 => {
+                ctx.sender.tell(Box::new(responses::MsgResponse {data: 99} ), Some(&ctx.self_));
+                ctx.sender.tell(Box::new(responses::MsgResponse2 {data: 99} ), Some(&ctx.self_));
+                ctx.sender.tell(Box::new(responses::MsgResponse3 {data: 99} ), Some(&ctx.self_))
             },
-            m: commands::MsgOk5 => {
-                ctx.sender.tell(Box::new(responses::MsgResponse {data: 99} ), Some(ctx.self_.clone()));
-                ctx.sender.tell(Box::new(responses::MsgResponse2 {data: 99} ), Some(ctx.self_.clone()));
-                ctx.sender.tell(Box::new(responses::OtherResponse {data: 99} ), Some(ctx.self_.clone()))
+            _m: commands::MsgOk5 => {
+                ctx.sender.tell(Box::new(responses::MsgResponse {data: 99} ), Some(&ctx.self_));
+                ctx.sender.tell(Box::new(responses::MsgResponse2 {data: 99} ), Some(&ctx.self_));
+                ctx.sender.tell(Box::new(responses::OtherResponse {data: 99} ), Some(&ctx.self_))
             },
-            m: commands::MsgOther => {
+            _m: commands::MsgOther => {
                 // Respond with incorrect message
-                ctx.sender.tell(Box::new(responses::OtherResponse {data: 99} ), Some(ctx.self_.clone()))
+                ctx.sender.tell(Box::new(responses::OtherResponse {data: 99} ), Some(&ctx.self_))
             },
-            m: commands::MsgNoResponse => {
+            _m: commands::MsgNoResponse => {
                 // Does not respond
             },
-            m: commands::MsgComplex0 => {
-                ctx.sender.tell(Box::new(responses::MsgResponse {data: 99} ), Some(ctx.self_.clone()))
+            _m: commands::MsgComplex0 => {
+                ctx.sender.tell(Box::new(responses::MsgResponse {data: 99} ), Some(&ctx.self_))
             },
-            m: commands::MsgComplex1 => {
-                ctx.sender.tell(Box::new(responses::MsgResponse2 {data: 199} ), Some(ctx.self_.clone()))
+            _m: commands::MsgComplex1 => {
+                ctx.sender.tell(Box::new(responses::MsgResponse2 {data: 199} ), Some(&ctx.self_))
             },
             m: commands::MutState => {
                 self.data = m.data;
             },
-            m: commands::ToRef => {
+            _m: commands::Bomb => {
+                ctx.system.lock().unwrap().stop(&mut ctx.self_);
+            },
+            _m: commands::ToRef => {
                 let msg = Box::new(logger::Log { text: String::from("Text"), target: logger::LogTarget::File });
                 if let Some(ref mut x) = self.referal {
-                    x.tell(msg, Some(ctx.self_.clone()))
+                    x.tell(msg, Some(&ctx.self_))
                 }
             },
             _ => return false
@@ -135,7 +139,7 @@ mod tests {
                 (target, probe)
             };
 
-            probe.send(target.clone(), Box::new( commands::MsgOk { data: 99 } ));
+            probe.send(&mut target, Box::new( commands::MsgOk { data: 99 } ));
             probe.expect_msg(pat_matcher!(responses::MsgResponse => responses::MsgResponse { data: 99 }));
         }
 
@@ -185,7 +189,7 @@ mod tests {
                 (target, probe)
             };
 
-            probe.send(target.clone(), Box::new( commands::MsgOk2 { data: 99 } ));
+            probe.send(&mut target, Box::new( commands::MsgOk2 { data: 99 } ));
             probe.expect_msg_any_of(
                 vec![
                     type_matcher!(responses::MsgResponse),
@@ -247,7 +251,7 @@ mod tests {
                 (target, probe)
             };
 
-            probe.send(target.clone(), Box::new( commands::MsgOk4 { data: 99 } ));
+            probe.send(&mut target, Box::new( commands::MsgOk4 { data: 99 } ));
             probe.expect_msg_all_of(
                 vec![
                     type_matcher!(responses::MsgResponse),
@@ -317,7 +321,7 @@ mod tests {
                 (target, probe)
             };
 
-            probe.send(target.clone(), Box::new( commands::MsgNoResponse { data: 99 } ));
+            probe.send(&mut target, Box::new( commands::MsgNoResponse { data: 99 } ));
             probe.expect_no_msg(Duration::from_secs(1));
         }
 
@@ -353,7 +357,7 @@ mod tests {
                 (target, probe)
             };
 
-            probe.send(target.clone(), Box::new( commands::MsgComplex0 {  } ));
+            probe.send(&mut target, Box::new( commands::MsgComplex0 {  } ));
             probe.expect_msg(pat_matcher!(responses::MsgResponse => responses::MsgResponse { data: 99 }));
             probe.reply(Box::new( commands::MsgComplex1 {  } ));
             probe.expect_msg(pat_matcher!(responses::MsgResponse2 => responses::MsgResponse2 { data: 199 }));
@@ -379,7 +383,7 @@ mod tests {
                 (target, probe)
             };
 
-            probe.send(target.clone(), Box::new(commands::ToRef {}));
+            probe.send(&mut target, Box::new(commands::ToRef {}));
             probe.expect_msg(type_matcher!(logger::Log));
             // And here you may reply to this message. Target actor receive is as from the referal actor
         }
@@ -399,7 +403,7 @@ mod tests {
                 (target, probe)
             };
 
-            probe.send(target.clone(), Box::new(commands::MutState { data: 599 }));
+            probe.send(&mut target, Box::new(commands::MutState { data: 599 }));
 
             // Wait while message will reach the actor and mutate his state
             probe.expect_no_msg(Duration::from_millis(500));
@@ -410,7 +414,25 @@ mod tests {
             });
         }
 
+        // ================================ death watch ================================
 
+        test_case!("Must terminate himself");
+        {
+            let (mut target, mut probe) = {
+                let mut system = system.lock().unwrap();
+                let mut probe = system.create_probe(Some("probe"));
+
+                // See to this code - we extract internal testprobe actor, and pass it as target
+                // actor dependency
+                let mut target = system.actor_of(self::props(Some(probe.aref())), None);
+
+                (target, probe)
+            };
+
+            probe.watch(&target);
+            probe.send(&mut target, Box::new(commands::Bomb {  }));
+            probe.expect_terminated(&target);
+        }
 
         // ================================ various matchers ================================
 

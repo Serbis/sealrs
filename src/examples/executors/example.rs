@@ -1,7 +1,6 @@
 use crate::executors::thread_pinned_executor::{ThreadPinnedExecutor, DistributionStrategy, TaskOptions};
 use crate::executors::executor::Executor;
 use std::thread;
-use std::time::Duration;
 
 pub fn run() {
     thread_pinned_dispatcher();

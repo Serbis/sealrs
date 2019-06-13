@@ -7,12 +7,21 @@
 
 use crate::common::tsafe::TSafe;
 use crate::actors::actor_cell::ActorCell;
-use crate::actors::abstract_actor_ref::{ActorRef, AbstractActorRef};
+use crate::actors::abstract_actor_ref::{ActorRef, AbstractActorRef, AskTimeoutError};
 use crate::actors::actor_path::ActorPath;
 use crate::actors::actor::Actor;
+use crate::actors::abstract_actor_system::AbstractActorSystem;
+use crate::actors::props::Props;
+use crate::actors::ask_actor::AskActor;
+use crate::actors::message::Message;
+use crate::futures::future::WrappedFuture;
+use crate::futures::promise::Promise;
+use crate::futures::completable_promise::CompletablePromise;
 use std::hash::{Hash, Hasher};
 use std::fmt;
 use std::any::Any;
+use std::time::Duration;
+use std::sync::{Arc, Mutex};
 
 pub struct TestLocalActorRef {
 
@@ -50,7 +59,7 @@ impl TestLocalActorRef {
 impl AbstractActorRef for TestLocalActorRef {
 
     /// Identical to original
-    fn tell(self: &mut Self, msg: Box<Any + Send + 'static>, rself: Option<&ActorRef>) {
+    fn tell(self: &mut Self, msg: Message, rself: Option<&ActorRef>) {
         // ------- mirror ---------
         let cell_cloned = self.cell.clone();
         let path_cloned = self.path.clone();
@@ -58,6 +67,23 @@ impl AbstractActorRef for TestLocalActorRef {
         let mut cell = self.cell.lock().unwrap();
         cell.send(&self.cell, msg, rself.map_or(None, |v| Some((*v).clone())), toref);
         // --------- end ----------
+    }
+
+    /// Identical to original
+    fn ask(&mut self, factory: &mut AbstractActorSystem, msg: Message) -> WrappedFuture<Message, AskTimeoutError> {
+        self.ask_timeout(factory, Duration::from_secs(3), msg)
+    }
+
+    /// Identical to original
+    fn ask_timeout(&mut self, factory: &mut AbstractActorSystem, timeout: Duration, msg: Message) -> WrappedFuture<Message, AskTimeoutError> {
+        let p: CompletablePromise<Message, AskTimeoutError>
+        = CompletablePromise::new();
+        let f = p.future();
+
+        let ask_actor = factory.actor_of(Props::new(tsafe!(AskActor::new(p, timeout))), None);
+        self.tell(msg, Some(&ask_actor));
+
+        f
     }
 
     /// Identical to original

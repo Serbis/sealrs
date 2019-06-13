@@ -5,7 +5,9 @@
 
 use crate::actors::abstract_actor_ref::ActorRef;
 use crate::actors::actor_path::ActorPath;
+use crate::actors::message::Message;
 use std::collections::HashMap;
+use std::sync::{Mutex, Arc};
 
 pub enum WatchingEvents {
     Terminated
@@ -96,7 +98,7 @@ impl Watcher {
 
                     for aref in watchers {
                         trace!("Send Terminated event message from {} to {}", from, aref);
-                        aref.tell(Box::new(events::Terminated {}), Some(&observed))
+                        aref.tell(msg!(events::Terminated {}), Some(&observed))
                     }
 
                     self.feed.remove(&obs_path);

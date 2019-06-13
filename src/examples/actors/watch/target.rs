@@ -1,7 +1,4 @@
-use crate::actors::actor::Actor;
-use crate::actors::message::Message;
-use crate::actors::actor_context::ActorContext;
-use crate::actors::props::Props;
+use crate::actors::prelude::*;
 use std::sync::{Mutex, Arc};
 
 pub fn props() -> Props {
@@ -19,7 +16,7 @@ impl Target {
 
 impl Actor for Target {
 
-    fn receive(self: &mut Self, _msg: &Message, _ctx: ActorContext) -> bool {
+    fn receive(self: &mut Self, _msg: Message, _ctx: ActorContext) -> bool {
         false
     }
 }

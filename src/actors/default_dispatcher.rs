@@ -9,6 +9,7 @@ use crate::actors::actor_context::ActorContext;
 use crate::actors::envelope::Envelope;
 use crate::actors::mailbox::Mailbox;
 use crate::actors::actor::{Actor, PoisonPill};
+use crate::actors::message::Message;
 use crate::common::tsafe::TSafe;
 use std::any::Any;
 
@@ -63,11 +64,11 @@ impl DefaultDispatcher {
                     sender.clone(),
                     envelope.receiver.clone(),
                     envelope.system.clone());
-                actor.receive(&msg, ctx)
+                actor.receive(msg.clone(), ctx)
             };
 
             if !handled {
-                let handled2 = DefaultDispatcher::internal_receive(mailbox, &msg, cell);
+                let handled2 = DefaultDispatcher::internal_receive(mailbox, msg.clone(), cell);
                 if !handled2 {
                     let mut dead_letters = {
                         let mut system = envelope.system.lock().unwrap();
@@ -83,9 +84,9 @@ impl DefaultDispatcher {
         mailbox.lock().unwrap().set_planned(false);
     }
 
-    pub fn internal_receive(mailbox: &TSafe<Mailbox + Send>, msg: &Box<Any + Send>, cell: &TSafe<ActorCell>) -> bool {
+    pub fn internal_receive(mailbox: &TSafe<Mailbox + Send>, msg: Message, cell: &TSafe<ActorCell>) -> bool {
 
-        if let Some(PoisonPill {}) = msg.downcast_ref::<PoisonPill>() {
+        if let Some(PoisonPill {}) = msg.get().downcast_ref::<PoisonPill>() {
             let mut cell_u = cell.lock().unwrap();
             cell_u.suspend();
             // +++ cell.actor.timers().cancelAll();

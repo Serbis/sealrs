@@ -1,8 +1,8 @@
-use crate::actors::local_actor_system::LocalActorSystem;
-use crate::actors::actor_ref_factory::ActorRefFactory;
+use crate::actors::prelude::*;
 use crate::examples::actors::logger::logger;
 use crate::examples::actors::logger::stdout_writer;
 use crate::examples::actors::logger::file_writer;
+use std::sync::{Mutex, Arc};
 use std::thread;
 
 pub fn run() {
@@ -15,8 +15,8 @@ pub fn run() {
         system.actor_of(logger::props(file_writer, stdout_writer), Some("logger"))
     };
 
-    logger.tell(Box::new(logger::Log { text: String::from("To file log"), target: logger::LogTarget::File }), None);
-    logger.tell(Box::new(logger::Log { text: String::from("To stdout log"), target: logger::LogTarget::StdOut }), None);
+    logger.tell(msg!(logger::Log { text: String::from("To file log"), target: logger::LogTarget::File }), None);
+    logger.tell(msg!(logger::Log { text: String::from("To stdout log"), target: logger::LogTarget::StdOut }), None);
 
     thread::park();
 }

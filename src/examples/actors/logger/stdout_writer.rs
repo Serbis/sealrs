@@ -1,6 +1,4 @@
-use crate::actors::actor::Actor;
-use crate::actors::actor_context::ActorContext;
-use crate::actors::props::Props;
+use crate::actors::prelude::*;
 use std::any::Any;
 use std::sync::{Mutex, Arc};
 use match_downcast::*;
@@ -27,11 +25,12 @@ impl StdoutWriter {
 }
 
 impl Actor for StdoutWriter {
-    fn receive(self: &mut Self, msg: &Box<Any + Send>, mut ctx: ActorContext) -> bool {
+    fn receive(&mut self, msg: Message, mut ctx: ActorContext) -> bool {
+        let msg = msg.get();
         match_downcast_ref!(msg, {
             m: Write => {
                println!("{}", m.text);
-               let resp = Box::new(Ok { chars_count: m.text.len() });
+               let resp = msg!(Ok { chars_count: m.text.len() });
                ctx.sender.tell(resp, Some(&ctx.self_));
             },
             _ => return false

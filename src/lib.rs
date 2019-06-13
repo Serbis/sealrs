@@ -6,8 +6,8 @@ extern crate failure;
 #[macro_use] extern crate log;
 
 #[macro_use] pub mod common;
+#[macro_use] pub mod actors;
 #[macro_use] pub mod testkit;
-pub mod actors;
 pub mod executors;
 //pub mod exps;
 pub mod futures;

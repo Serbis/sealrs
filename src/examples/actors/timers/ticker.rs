@@ -1,8 +1,5 @@
+use crate::actors::prelude::*;
 use crate::common::tsafe::TSafe;
-use crate::actors::actor::Actor;
-use crate::actors::actor_context::ActorContext;
-use crate::actors::props::Props;
-use crate::actors::timers::Timers;
 use std::any::Any;
 use std::sync::{Mutex, Arc};
 use match_downcast::*;
@@ -40,14 +37,14 @@ impl Actor for Ticker {
             &ctx.self_,
             &ctx.self_,
             Duration::from_secs(1),
-            Box::new(SingleTick {}));
+            msg!(SingleTick {}));
 
         timers.start_periodic(
             1,
             &ctx.self_,
             &ctx.self_,
             Duration::from_secs(2),
-            || Box::new(PeriodicTick {}));
+            || msg!(PeriodicTick {}));
 
 
         self.timers = Some(tsafe!(timers));
@@ -58,8 +55,8 @@ impl Actor for Ticker {
     }
 
 
-    fn receive(self: &mut Self, msg: &Box<Any + Send>, _ctx: ActorContext) -> bool {
-        match_downcast_ref!(msg, {
+    fn receive(self: &mut Self, msg: Message, _ctx: ActorContext) -> bool {
+        match_downcast_ref!(msg.get(), {
             _m: SingleTick => {
                 println!("SingleTick");
             },

@@ -12,12 +12,13 @@ use crate::actors::actor::Actor;
 use crate::actors::props::Props;
 use crate::actors::watcher::events::Terminated;
 use crate::actors::actor_context::ActorContext;
+use crate::actors::message::Message;
 use std::sync::{Arc, Mutex, Condvar};
 use std::any::Any;
 use std::time::{ Duration, SystemTime };
 use std::thread;
 
-type Matcher = Box<Fn(&Box<Any + Send>) -> bool + Send>;
+type Matcher = Box<Fn(Message) -> bool + Send>;
 
 pub struct TestProbe {
     /// Probe name
@@ -55,7 +56,10 @@ pub struct TestProbe {
     match_results: TSafe<Vec<Option<bool>>>,
 
     /// Sender of the last received message
-    last_sender: TSafe<ActorRef>
+    last_sender: TSafe<ActorRef>,
+
+    /// Last handled messages
+    messages: TSafe<Vec<Message>>
 }
 
 impl TestProbe {
@@ -69,6 +73,7 @@ impl TestProbe {
         let match_results = tsafe!(Vec::new());
         let actor_may_work = tsafe!(false);
         let last_sender = tsafe!(system.lock().unwrap().dead_letters());
+        let messages = tsafe!(Vec::new());
 
         let actor = TestProbeActor::new(
             probe_cvar.clone(),
@@ -77,7 +82,8 @@ impl TestProbe {
             actor_cvar.clone(),
              actor_cvar_m,
              actor_may_work.clone(),
-            last_sender.clone()
+            last_sender.clone(),
+            messages.clone()
         );
         let actor = tsafe!(actor);
         let inner_actor = system.lock().unwrap().actor_of(Props::new(actor), name);
@@ -99,7 +105,8 @@ impl TestProbe {
             timer: timer::Timer::new(),
             matchers,
             match_results,
-            last_sender
+            last_sender,
+            messages
         }
     }
 
@@ -114,26 +121,33 @@ impl TestProbe {
     }
 
     /// Send message to some actor
-    pub fn send(&mut self, target: &mut ActorRef, msg: Box<Any + Send>) {
+    pub fn send(&mut self, target: &mut ActorRef, msg: Message) {
         target.tell(msg, Some(&self.inner_actor))
     }
 
     /// Reply to the last sender with specified message
-    pub fn reply(&mut self, msg: Box<Any + Send>) {
+    pub fn reply(&mut self, msg: Message) {
         let mut last_sender = self.last_sender.lock().unwrap();
         last_sender.tell(msg, Some(&self.inner_actor))
     }
 
     /// Expect a single message from an actor. Blocks called thread while message will be received or
-    /// timeout was reached.
+    /// timeout was reached. Returns intercepted message instance.
     ///
     /// # Example
     ///
     /// ```
     /// probe.expect_msg(type_matcher!(some_actor::SomeMsg));
+    /// let msg = probe.expect_msg(type_matcher!(some_actor::SomeMsgOther));
     /// ```
     ///
-    pub fn expect_msg(&mut self, matcher: Matcher)  {
+    pub fn expect_msg(&mut self, matcher: Matcher) -> Message {
+        // Clean early handled messages
+        {
+            let mut messages = self.messages.lock().unwrap();
+            messages.clear();
+        }
+
         // Set current matcher
         *self.matchers.lock().unwrap() = vec![matcher];
         *self.match_results.lock().unwrap() = vec![None];
@@ -162,13 +176,15 @@ impl TestProbe {
             if r == false {
                 panic!("Test probe '{}' failed in 'expect_msg' with check error ( unexpected message received )", &self.name);
             }
+            let mut messages = self.messages.lock().unwrap();
+            messages.pop().unwrap()
         } else {
             panic!("Test probe '{}' failed in 'expect_msg' with timeout {} ms", &self.name, self.timeout.as_millis());
         }
     }
 
     /// Expect an any message in the specified set from an actor. Blocks called thread while message
-    /// will be received or timeout was reached.
+    /// will be received or timeout was reached. Returns intercepted messages list.
     ///
     /// # Example
     ///
@@ -182,7 +198,12 @@ impl TestProbe {
     /// );
     /// ```
     ///
-    pub fn expect_msg_any_of(&mut self, matchers: Vec<Matcher>) {
+    pub fn expect_msg_any_of(&mut self, matchers: Vec<Matcher>) -> Message {
+        // Clean early handled messages
+        {
+            let mut messages = self.messages.lock().unwrap();
+            messages.clear();
+        }
 
         // Set current matcher
         let mut filled_results = Vec::new();
@@ -233,6 +254,9 @@ impl TestProbe {
             if !found {
                 panic!("Test probe '{}' failed in 'expect_msg_any_of' with check error ( unexpected message received )", &self.name);
             }
+
+            let mut messages = self.messages.lock().unwrap();
+            messages.pop().unwrap()
         } else {
             panic!("Test probe '{}' failed in 'expect_msg_any_of' with timeout {} ms", &self.name, self.timeout.as_millis());
         }
@@ -241,7 +265,7 @@ impl TestProbe {
     /// Expect all messages in specified set from an actor. Order of messages is not not significant.
     /// Target message may be altered with some other messages. Test will passed, when all messages
     /// from the list, will be intercepted from input messages stream. Blocks called thread while
-    /// message will be received or timeout was reached.
+    /// message will be received or timeout was reached. Returns intercepted messages list.
     ///
     /// # Example
     ///
@@ -255,7 +279,13 @@ impl TestProbe {
     /// );
     /// ```
     ///
-    pub fn expect_msg_all_of(&mut self, matchers: Vec<Matcher>) {
+    pub fn expect_msg_all_of(&mut self, matchers: Vec<Matcher>) -> Vec<Message> {
+        // Clean early handled messages
+        {
+            let mut messages = self.messages.lock().unwrap();
+            messages.clear();
+        }
+
         let m_len = matchers.len();
         //Internal match results
         let mut internal_results: Vec<Option<bool>> = Vec::new();
@@ -336,6 +366,9 @@ impl TestProbe {
                 panic!("Test probe '{}' failed in 'expect_msg_all_of' with timeout {} ms", &self.name, self.timeout.as_millis());
             }
         }
+
+        let mut messages = self.messages.lock().unwrap();
+        messages.iter().map(|v| v.clone()).collect()
     }
 
     /// Expect than no one actor do not send message to this probe in specified time duration
@@ -464,7 +497,8 @@ struct TestProbeActor {
     actor_cvar: Arc<Condvar>,
     actor_cvar_m: Arc<Mutex<bool>>,
     actor_may_work: TSafe<bool>,
-    last_sender: TSafe<ActorRef>
+    last_sender: TSafe<ActorRef>,
+    messages: TSafe<Vec<Message>>
 }
 
 impl TestProbeActor {
@@ -475,7 +509,8 @@ impl TestProbeActor {
         actor_cvar: Arc<Condvar>,
         actor_cvar_m: Arc<Mutex<bool>>,
         actor_may_work: TSafe<bool>,
-        last_sender: TSafe<ActorRef>) -> TestProbeActor {
+        last_sender: TSafe<ActorRef>,
+        messages: TSafe<Vec<Message>>) -> TestProbeActor {
 
         let _test_matcher = |_v: &Box<Any + Send>| {
             true
@@ -487,7 +522,8 @@ impl TestProbeActor {
             actor_cvar,
             actor_cvar_m,
             actor_may_work,
-            last_sender
+            last_sender,
+            messages
         }
     }
 
@@ -498,7 +534,7 @@ impl TestProbeActor {
 
 impl Actor for TestProbeActor {
 
-    fn receive(&mut self, msg: &Box<Any + Send>, ctx: ActorContext) -> bool {
+    fn receive(&mut self, msg: Message, ctx: ActorContext) -> bool {
         if *self.actor_may_work.lock().unwrap() == false {
             self.lock();
         }
@@ -513,7 +549,11 @@ impl Actor for TestProbeActor {
         let mut counter = 0;
         for m in matchers.iter() {
             if match_results[counter] == None {
-                let result = (m)(msg);
+                let result = (m)(msg.clone());
+                if result {
+                    let mut messages = self.messages.lock().unwrap();
+                    messages.push(msg.clone());
+                }
                 match_results[counter] = Some(result);
             }
 

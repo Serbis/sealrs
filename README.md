@@ -13,16 +13,14 @@ This library have a very reach documentation with big count of examples and expl
 
 # New in release
 
-* Change public api in parts of ActorRef's passing
-* Developed 'Watch' mechanism
-* Upgraded TestProbe (watch, expect_terminated)
-* Created some debug log's
+* Refactored message passing mechanism
+* Developed ask pattern
+* Expectors in TestProbe now returns intercepted message/s
 
 See [changelog](https://github.com/Serbis/sealrs/blob/master/changelog.md) for info about new releases.
 
 # In the next release
 
-* 'Ask' pattern for actors
 * 'sealrs -> futures' converter for seamless conversion for library's declarative futures to the Rust's imperative futures
 * 'Future await' mechanics
 

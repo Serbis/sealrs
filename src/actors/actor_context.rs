@@ -2,8 +2,10 @@
 //!
 //! This object will constructs for each new message received by an actor
 use crate::actors::abstract_actor_system::AbstractActorSystem;
+use crate::actors::actor_ref_factory::ActorRefFactory;
 use crate::actors::abstract_actor_ref::AbstractActorRef;
 use crate::common::tsafe::TSafe;
+use std::sync::MutexGuard;
 
 pub struct ActorContext {
 
@@ -27,5 +29,9 @@ impl ActorContext {
             self_,
             system,
         }
+    }
+
+    pub fn system(&mut self) -> MutexGuard<AbstractActorSystem + Send + 'static> {
+        self.system.lock().unwrap()
     }
 }

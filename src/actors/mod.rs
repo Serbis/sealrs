@@ -12,6 +12,7 @@
 //! 9. [More about DeadLetters](#more-about-deadletters)
 //! 10. [Timers](#timers)
 //! 11. [Watching](#watching)
+//! 12. [Ask](#ask)
 //!
 //! # Introduction
 //! This runtime is realize the classical actor paradigm actively used in the actor based languages,
@@ -102,21 +103,19 @@
 //!
 //! # Basic operations
 //!
-//! Now, after we will learn set of the basis framework elements, let's try write some practical
-//! code. First, we need some implementation of the actor. Let's create actor to which we may send
-//! the message with some text, and actor will print it. As side-effect, actor will be count of
+//! Now, after we will learn set of the basis framework elements, let's try to write some practical
+//! code. First, we need some implementation of an actor. Let's create actor to which we may send
+//! message with some text, and actor will print it. As side-effect, actor will be count of
 //! printed characters.
 //!
 //! ```
-//! use crate::actors::actor::Actor;
-//! use crate::actors::actor_context::ActorContext;
-//! use crate::actors::props::Props;
+//! use crate::actors::prelude::*;
 //! use std::any::Any;
 //! use std::sync::{Mutex, Arc};
 //! use match_downcast::*;
 //!
 //! pub fn props() -> Props {
-//!    Props::new(tsafe!(BasicActor::new()))
+//!     Props::new(tsafe!(BasicActor::new()))
 //! }
 //!
 //! pub struct Print {
@@ -137,7 +136,8 @@
 //!
 //! impl Actor for BasicActor {
 //!
-//!     fn receive(self: &mut Self, msg: &Box<Any + Send>, ctx: ActorContext) -> bool {
+//!     fn receive(self: &mut Self, msg: Message, _ctx: ActorContext) -> bool {
+//!         let msg = msg.get();
 //!         match_downcast_ref!(msg, {
 //!             m: Print => {
 //!                 self.printed_chars = self.printed_chars + m.text.len();
@@ -148,11 +148,10 @@
 //!
 //!         true
 //!     }
-//! 
 //! }
 //! ```
 //!
-//! Next we write the code which use this actor
+//! Next we write the code which use this actor:
 //!
 //! ```
 //! let mut system = LocalActorSystem::new();
@@ -160,7 +159,7 @@
 //! let mut printer = system.lock().unwrap()
 //!     .actor_of(basic_actor::props(), Some("printer"));
 //!
-//! let msg = Box::new(basic_actor::Print { text: String::from("Hello world!") });
+//! let msg = msg!(basic_actor::Print { text: String::from("Hello world!") });
 //! printer.tell(msg, None);
 //! ```
 //!
@@ -168,7 +167,7 @@
 //! and DeadLetter synthetic actor. Should pay attention on the following fact. ActorSystem have type
 //! TSafe<LocalActorSystem>. TSafe is macro which expands to Arc<Mutex\<T\>>. Last is the standard rust
 //! thread safe shared pointer. This fact means for as, that we will mast lock this pointer before
-//! use it. Omissions in the logic of the this pointers unlocking, when we use in outside of the
+//! use it. Omissions in the logic of the this pointers unlocking, when you use him outside of the
 //! actor system, will guaranteed lead to some sort of deadlocks. For this reason, you must pay
 //! extreme attention for lock management of this object if you plan to use this pointer in the
 //! other places, rather than actors. In normal conditions, his is used only at the actor system
@@ -178,23 +177,25 @@
 //! At next line, we create the early defined actor. actor_of functions is receive Pops object as
 //! first argument, and actor name as second. Actor name is optional, and it may be set to None.
 //! In this case, name will be generated automatically. Props object is indicates the system, which
-//! actor to create, and with whitch params. We will come across this structure more than once as
+//! actor to create, and with which params. We will come across this structure more than once as
 //! the material is presented. For now, we simple creates new actor instance and put it's to the
 //! Props object. As a result of the actor_off call, we will receive actor link object - ActorRef.
 //! Internally this call, besides the ActorRef, will create next objects: ActorCell, Mailbox and
 //! Dispatcher if it was specified and has unique nature. After performs all internal operations,
 //! library code will call preStart function, which will be described later in this doc.
 //!
-//! And at last stage, we may send the Print message to the actor. We create new Print structure,
-//! box it and send it to the actor through tell function. Tell function receive message as first
+//! And at last stage, we may send the Print message to the actor.We create the new Print structure,
+//! uses for it the msg! macro and then send her to the actor through tell function. The 'msg!'
+//! macros is creates the special wrapper for messages, which may contain any data type and he may
+//! be safely shared between threads. Tell function receive message as first
 //! argument and sender actor reference as second. Last is optional, because if we send message
 //! outside of the actor system we do not someone whom may be represents as sender. If you perform
 //! this operation from the actor, you should be set ctx.self_ to this value. But about this we
 //! say later. When you call tell function, ActorCell get passed message to the mailbox and
 //! indicates dispatcher schedule this message for processing.
 //!
-//! Ok, message in the mailbox, what happens with him further? Next, the dispatcher executor, when they
-//! will be ready for it, extract him from the mailbox and message processing stage is starts.
+//! Ok, message in the mailbox, what happens with him further? Next, the dispatcher, when he
+//! will be ready for it, extract message from the mailbox and message processing stage is starts.
 //! First, the message is heading to the internal receive function. His task, determine service message
 //! (such as PoisonPill, witch stops the actor). If it is, it will be processed, some service
 //! actions will be performed and message will dropped. He will does not reach the  receive function
@@ -249,7 +250,7 @@
 //! actor stopping procedure.
 //!
 //!     ```
-//!     bench.tell(Box::new(actor::PoisonPill { }), None);
+//!     bench.tell(msg!(actor::PoisonPill { }), None);
 //!     ```
 //!
 //! * ActorSystem::stop(ActorRef) - this call immediately stops the specified actor. He lead to block mailbox
@@ -279,16 +280,17 @@
 //!
 //! ```
 //!// Logger
-//!fn receive(self: &mut Self, msg: &Box<Any + Send>, ctx: ActorContext) -> bool {
+//!fn receive(self: &mut Self, msg: Message, ctx: ActorContext) -> bool {
+//!    let msg = msg.get();
 //!    match_downcast_ref!(msg, {
 //!            m: Log => {
 //!                match m.target {
 //!                    LogTarget::File => {
-//!                        let msg = Box::new(file_writer::Write { text: m.text.to_string() });
+//!                        let msg = msg!(file_writer::Write { text: m.text.to_string() });
 //!                        self.file_writer.tell(msg , Some(&ctx.self_))
 //!                    },
 //!                    LogTarget::StdOut => {
-//!                        let msg = Box::new(stdout_writer::Write { text: m.text.to_string() });
+//!                        let msg = msg!(stdout_writer::Write { text: m.text.to_string() });
 //!                        self.stdout_writer.tell(msg, Some(&ctx.self_))
 //!                    }
 //!                };
@@ -309,11 +311,12 @@
 //!
 //!
 //!//StdoutWriter
-//!fn receive(self: &mut Self, msg: &Box<Any + Send>, mut ctx: ActorContext) -> bool {
+//!fn receive(self: &mut Self, msg: Message, mut ctx: ActorContext) -> bool {
+//!    let msg = msg.get();
 //!    match_downcast_ref!(msg, {
 //!            m: Write => {
 //!               println!("{}", m.text);
-//!               let resp = Box::new(Ok { chars_count: m.text.len() });
+//!               let resp = msg!(Ok { chars_count: m.text.len() });
 //!               ctx.sender.tell(resp, Some(&ctx.self_));
 //!            },
 //!            _ => return false
@@ -324,11 +327,12 @@
 //!
 //!
 //! //FileWriter
-//!fn receive(self: &mut Self, msg: &Box<Any + Send>, mut ctx: ActorContext) -> bool {
+//!fn receive(self: &mut Self, msg: Message, mut ctx: ActorContext) -> bool {
+//!    let msg = msg.get();
 //!    match_downcast_ref!(msg, {
 //!            m: Write => {
 //!               fs::write(&self.file, m.text.as_bytes());
-//!               let resp = Box::new(Ok { chars_count: m.text.len() });
+//!               let resp = msg!(Ok { chars_count: m.text.len() });
 //!               ctx.sender.tell(resp, Some(&ctx.self_));
 //!            },
 //!            _ => return false
@@ -350,8 +354,8 @@
 //!     system.actor_of(logger::props(file_writer, stdout_writer), Some("logger"))
 //! };
 //!
-//! logger.tell(Box::new(logger::Log { text: String::from("To file log"), target: logger::LogTarget::File }), None);
-//! logger.tell(Box::new(logger::Log { text: String::from("To stdout log"), target: logger::LogTarget::StdOut }), None);
+//! logger.tell(msg!(logger::Log { text: String::from("To file log"), target: logger::LogTarget::File }), None);
+//! logger.tell(msg!(logger::Log { text: String::from("To stdout log"), target: logger::LogTarget::StdOut }), None);
 //! ```
 //!
 //! This code demonstrate two patterns and operation as part of this library:
@@ -421,14 +425,14 @@
 //!           &ctx.self_,
 //!           &ctx.self_,
 //!           Duration::from_secs(1),
-//!           Box::new(SingleTick {}));
+//!           msg!(SingleTick {}));
 //!
 //!        timers.start_periodic(
 //!            1,
 //!            &ctx.self_,
 //!            &ctx.self_,
 //!            Duration::from_secs(2),
-//!            || Box::new(PeriodicTick {}));
+//!            || msg!(PeriodicTick {}));
 //!
 //!        self.timers = Some(tsafe!(timers));
 //!    }
@@ -438,7 +442,8 @@
 //!    }
 //!
 //!
-//!    fn receive(self: &mut Self, msg: &Box<Any + Send>, ctx: ActorContext) -> bool {
+//!    fn receive(self: &mut Self, msg: Message, ctx: ActorContext) -> bool {
+//!        let msg = msg.get();
 //!        match_downcast_ref!(msg, {
 //!            m: SingleTick => {
 //!               println!("SingleTick");
@@ -489,7 +494,7 @@
 //! subscribe actor for events of another actor in the following way:
 //!
 //! ```
-//! ctx.system.lock().unwrap().watch(&ctx.self_, &self.target);
+//! ctx.system().watch(&ctx.self_, &self.target);
 //! ```
 //!
 //! First argument of the watch function is the reference to actor which will be subscribed for
@@ -503,7 +508,7 @@
 //! Actor may unsubscribes from actor events in similar way, using function unwatch:
 //!
 //! ```
-//! ctx.system.lock().unwrap().unwatch(&ctx.self_, &self.target);
+//! ctx.system().unwatch(&ctx.self_, &self.target);
 //! ```
 //!
 //! Caution about unwatching. You must always explicitly call unwatch method, before actor (which is
@@ -512,8 +517,87 @@
 //! events. It may be extremely expensive operation if on the event bus exists many observed actors.
 //!
 //! You may see full example usage of watching in the 'examples/actors/watch' submodule.
-
-
+//!
+//! # Ask
+//!
+//! Ask call doing the same thing that tell call, but expects, that target actor respond back with
+//! some message. This expectation represents as Future, which will be completed with received
+//! message or with AskTimeoutError if target actor does not respond with some timeout. This
+//! operation may be used in three way:
+//!
+//! * Interact with actor system from synchronous world. This feature will be presented in the
+//! nearest release of the futures. The essence of this patterns consists in that you Ask target,
+//! and block your thread on the Future, which returned be the function. This operation will
+//! permits to you interact with actors as if they would  be a some synchronous function.
+//! * Connection of actor's world with future's world. This situation is very often occurs in the
+//! web development. Most count of modern server libraries, more or less supports future paradigm.
+//! This features consists in than when server receives a request, you do not process him in the
+//! handler but pass this work to the future. With Ask pattern you may represents interaction
+//! with actor system through such future. Basic example of this interactions may be expressed
+//! in this way:
+//!
+//! ```
+//! actor.ask(&mut (*system.lock().unwrap()), msg!(SomeRequest {}))
+//!     .map(|v| {
+//!         // Do some with received message
+//!     })
+//!     .recover(|e| {
+//!         // Do some with timeout error
+//!     });
+//! ```
+//! * Intercommunication layer between actors without mutation of state . Imagine the next station.
+//! You have three actors A, B and C. A requests B for some data. But B for respond to A, need
+//! firstly request C and based on him response, he may create response for A. Without futures this
+//! may be realized only as state machine. After receives request from A, B sends request to C and
+//! change it's behavior for handle responses from C. When response from C will be received,
+//! B create response to A, send him, and switch her behavior to the normal. Details about what do
+//! with messages addressed to B when it's not in the normal state is omitted. If in this situation
+//! state of actor B does not mutates, state machine may be converted to actor with linear behavior,
+//! which uses for this operation futures. Such code Ask actor C and does not wait anything, all
+//! logic now live in the future combinators, which will be processed fully separate from the actor B.
+//! Situation of this sort, often have a place to be in DDD paradigm in parts of CQRS interactions
+//! logic. For example you ask to root aggregate for get some view object of some entity, he will
+//! calls read side of entity, read side in turn asks repository. Repository return raw view object
+//! to the read side. Read side transforms this object to the natural view object, and root
+//! aggregate removes some system fields from it and returns it to the requester. All stages in this
+//! chain is immutable for state of the participants. And all this operation may be performed with
+//! futures. On practice it may work follows:
+//!
+//! ```
+//! fn receive(&mut self, msg: Message, mut ctx: ActorContext) -> bool {
+//!     let msg = msg.get();
+//!     match_downcast_ref!(msg, {
+//!         m: commands::RequestFromA => {
+//!             let inter_data = m.data + 100;
+//!
+//!             let mut sender = ctx.sender.clone();
+//!             let mut self_ = ctx.self_.clone();
+//!
+//!             self.c_actor.ask(&mut (*ctx.system()), msg!(RequestFromB { data: inter_data }) )
+//!                 .on_complete(move |v| {
+//!                     if v.is_ok() {
+//!                         let resp = v.as_ref().ok().unwrap();
+//!                         let resp = resp.get();
+//!                         if let Some(m) = resp.downcast_ref::<ResponseFromC>() {
+//!                             let inter = m.data;
+//!                             sender.tell(msg!(ResponseFromB {data: inter }), Some(&self_));
+//!                         }
+//!                     } else {
+//!                         println!("Oops! C does not respond!")
+//!                     }
+//!                 });
+//!             },
+//!             _ => return false
+//!         });
+//!
+//!    true
+//! }
+//! ```
+//!
+//! You may see full example of Ask usage in the 'examples/actors/ask' submodule.
+//!
+#[macro_use] pub mod message;
+pub mod prelude;
 pub mod dispatcher;
 pub mod default_dispatcher;
 pub mod actor_cell;
@@ -533,5 +617,5 @@ pub mod abstract_actor_system;
 pub mod local_actor_ref;
 pub mod scheduler;
 pub mod timers;
-pub mod message;
 pub mod watcher;
+pub mod ask_actor;

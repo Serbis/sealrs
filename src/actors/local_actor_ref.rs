@@ -3,11 +3,20 @@
 
 use crate::common::tsafe::TSafe;
 use crate::actors::actor_cell::ActorCell;
-use crate::actors::abstract_actor_ref::{AbstractActorRef, ActorRef};
+use crate::actors::abstract_actor_ref::{AbstractActorRef, ActorRef, AskTimeoutError};
 use crate::actors::actor_path::ActorPath;
+use crate::actors::message::Message;
+use crate::actors::abstract_actor_system::AbstractActorSystem;
+use crate::actors::props::Props;
+use crate::actors::ask_actor::AskActor;
+use crate::futures::future::WrappedFuture;
+use crate::futures::promise::Promise;
+use crate::futures::completable_promise::CompletablePromise;
 use std::hash::{Hash, Hasher};
 use std::fmt;
 use std::any::Any;
+use std::time::Duration;
+use std::sync::{Arc, Mutex};
 
 pub struct LocalActorRef {
     pub cell: TSafe<ActorCell>,
@@ -47,12 +56,42 @@ impl AbstractActorRef for LocalActorRef {
      /// ```
      ///
      /// ```
-    fn tell(self: &mut Self, msg: Box<Any + Send + 'static>, rself: Option<&ActorRef>) {
+    fn tell(self: &mut Self, msg: Message, rself: Option<&ActorRef>) {
         let cell_cloned = self.cell.clone();
         let path_cloned = self.path.clone();
         let toref = Box::new(LocalActorRef::new(cell_cloned, path_cloned));
         let mut cell = self.cell.lock().unwrap();
-        cell.send(&self.cell, msg, rself.map_or(None, |v| Some((*v).clone())), toref)    }
+        cell.send(&self.cell, msg, rself.map_or(None, |v| Some((*v).clone())), toref)
+    }
+
+    /// Call ask_timeout with default timeout
+    fn ask(&mut self, factory: &mut AbstractActorSystem, msg: Message) -> WrappedFuture<Message, AskTimeoutError> {
+        self.ask_timeout(factory, Duration::from_secs(3), msg)
+    }
+
+    /// Sends a message to the target actor and expects that he respond to that message. Expectation
+    /// represent as future, which will be completed with received message or will be failed with
+    /// AskTimeoutError, if target actor will not respond with specified timeout.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// first.ask(&mut (*ctx.system()), Duration::from_secs(3), msg!(SomeMsg {}))
+    ///     .on_complete(|v| {
+    ///         // Do something with result (or error)
+    ///     });
+    /// ```
+    ///
+    fn ask_timeout(&mut self, factory: &mut AbstractActorSystem, timeout: Duration, msg: Message) -> WrappedFuture<Message, AskTimeoutError> {
+        let p: CompletablePromise<Message, AskTimeoutError>
+            = CompletablePromise::new();
+        let f = p.future();
+
+        let ask_actor = factory.actor_of(Props::new(tsafe!(AskActor::new(p, timeout))), None);
+        self.tell(msg, Some(&ask_actor));
+
+        f
+    }
 
     /// Return copy of the actor path object
     fn path(&self) -> ActorPath {
@@ -100,4 +139,3 @@ impl Hash for LocalActorRef {
         self.path.lock().unwrap().hash(state);
     }
 }
-

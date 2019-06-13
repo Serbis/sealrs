@@ -17,6 +17,7 @@ use crate::actors::abstract_actor_ref::ActorRef;
 use crate::actors::watcher::WatchingEvents;
 use crate::actors::watcher::Watcher;
 use crate::actors::scheduler::Scheduler;
+use crate::actors::message::Message;
 use std::sync::{Arc, Mutex};
 
 
@@ -133,7 +134,7 @@ impl ActorRefFactory for LocalActorSystem {
         cell.suspend();
         // +++ cell.actor.timers().cancelAll();
         cell.mailbox.lock().unwrap().clean_up(aref_cpy0, self.dead_letters());
-        cell.force_send(aref.cell().clone(), Box::new(PoisonPill {}), None, aref_cpy1);
+        cell.force_send(aref.cell().clone(), msg!(PoisonPill {}), None, aref_cpy1);
     }
 
     /// Return deadLetter actor reference

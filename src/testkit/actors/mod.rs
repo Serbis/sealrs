@@ -89,10 +89,12 @@
 //! error. Default timeout is set to 3 seconds. This time may be tuned though set_timeout method.
 //! Now let's define list of existed expects.
 //!
-//! * expect_msg - Expects a single message
-//! * expect_msg_any_of - Expects any message from the presented set
+//! * expect_msg - Expects a single message. Returns an instance of an intercepted message.
+//! * expect_msg_any_of - Expects any message from the presented set. Returns an instance of an
+//! intercepted message.
 //! * expect_msg_all_off - Expects all message from the presented set. Order of the messages is not
-//! determined. Also target messages may to alternate with message does not from set.
+//! determined. Also target messages may to alternate with message does not from set. Returns a
+//! list of instances of an intercepted messages.
 //! * expect_no_msg - Expects that no one message will be received in the specified time interval.
 //! * expect_terminated - Expects that specified actor will be stopped. Before perform this
 //! expectations, probe must be watch target actor:
@@ -104,7 +106,7 @@
 //! Now what with matchers. Matcher is a function with next signature:
 //!
 //! ```text
-//! type Matcher = Box<Fn(&Box<Any + Send>) -> bool + Send>;
+//! type Matcher = Box<Fn(Message) -> bool + Send>;
 //! ```
 //!
 //! Typical operations, which do a matchers, consists in check of message type through it's
@@ -113,8 +115,8 @@
 //!
 //!
 //! ```
-//! Box::new(|v: &Box<Any + Send>| {
-//!     if let Some(m) = v.downcast_ref::<logger::Log>() {
+//! Box::new(|v: Message| {
+//!     if let Some(m) = v.get().downcast_ref::<logger::Log>() {
 //!         if m.text.len() > 100 {
 //!             match m.target {
 //!                 logger::LogTarget::StdOut => true,
@@ -135,7 +137,7 @@
 //!
 //! ```
 //! matcher!(v => {
-//!     if let Some(m) = v.downcast_ref::<logger::Log>() {
+//!     if let Some(m) = v.get().downcast_ref::<logger::Log>() {
 //!         if m.text.len() > 100 {
 //!             match m.target {
 //!                 logger::LogTarget::StdOut => true,
@@ -170,7 +172,7 @@
 //!
 //! ```
 //! extended_type_matcher!(logger::Log, v => {
-//!     if v.text.len() > 100 {
+//!     if v.get().text.len() > 100 {
 //!         true
 //!     } else {
 //!         false
@@ -203,9 +205,9 @@
 //! matched, reply to them with new message, and again wait a message and so on.
 //!
 //! ```
-//! probe.send(target.clone(), Box::new(some_actor::DoFirstAction { }));
+//! probe.send(target.clone(), msg!(some_actor::DoFirstAction { }));
 //! probe.expect_msg(type_matcher!(some_actor::OkForFirstAction));
-//! probe.send(target.clone(), Box::new(some_actor::DoSecondAction { }));
+//! probe.send(target.clone(), msg!(some_actor::DoSecondAction { }));
 //! probe.expect_msg(type_matcher!(some_actor::OkForSecondAction));
 //!
 //! ```
@@ -232,11 +234,32 @@
 //!     (target, probe, stdout_writer, file_writer)
 //!  };
 //!
-//! probe.send(target.clone(), Box::new(logger::Log { text: String::from("_"), target: logger::LogTarget::File }));
+//! probe.send(target.clone(), msg!(logger::Log { text: String::from("_"), target: logger::LogTarget::File }));
 //! file_writer.expect_msg(type_matcher!(file_writer::Write));
 //!
-//! probe.send(target.clone(), Box::new(logger::Log { text: String::from("_"), target: logger::LogTarget::StdOut }));
+//! probe.send(target.clone(), msg!(logger::Log { text: String::from("_"), target: logger::LogTarget::StdOut }));
 //! stdout_writer.expect_msg(type_matcher!(stdout_writer::Write));
+//! ```
+//!
+//! # Helper macros
+//!
+//! In the testkit exists few macros which simplify some aspects of testing.
+//!
+//! * cast! - Casts some Message to the specified type and call a user function with this value. Macro
+//! may be used in two modes. First as validator, when you getting access to the internal data of
+//! a message. Second as extractor of data from a messages, because he may return values from itself
+//! based on the data from a message.
+//!
+//! ```
+//! // As validator
+//! cast!(msg, responses::MsgResponse, m => {
+//!     assert_eq!(m.data, 99);
+//! });
+//!
+//! // As extractor
+//! let data = cast!(msg, responses::MsgResponse, m => {
+//!     m.data;
+//! });
 //! ```
 //!
 //! # Examples
@@ -251,5 +274,6 @@ pub mod macrodef;
 pub mod test_local_actor_system;
 pub mod test_local_actor_ref;
 pub mod test_probe;
+pub mod prelude;
 
 

@@ -20,7 +20,7 @@
 #[macro_export]
 macro_rules! matcher {
         ($value:ident => $body:expr) => {
-            Box::new(move |$value: &Box<Any + Send>| {
+            Box::new(move |$value: Message| {
                 $body
             })
         };
@@ -37,8 +37,8 @@ macro_rules! matcher {
 #[macro_export]
 macro_rules! type_matcher {
         ($t:path) => {
-            Box::new(move |v: &Box<Any + Send>| {
-                if let Some(_) = v.downcast_ref::<$t>() {
+            Box::new(move |v: Message| {
+                if let Some(_) = v.get().downcast_ref::<$t>() {
                    true
                 } else {
                     false
@@ -62,8 +62,8 @@ macro_rules! type_matcher {
 #[macro_export]
 macro_rules! pat_matcher {
         ($t:path => $pat:pat) => {
-            Box::new(move |v: &Box<Any + Send>| {
-                if let Some(m) = v.downcast_ref::<$t>() {
+            Box::new(move |v: Message| {
+                if let Some(m) = v.get().downcast_ref::<$t>() {
                     match m {
                          $pat => true,
                          _ => false
@@ -96,8 +96,8 @@ macro_rules! pat_matcher {
 #[macro_export]
 macro_rules! extended_type_matcher {
         ($t:path , $v:ident => $body:expr) => {
-            Box::new(move |v: &Box<Any + Send>| {
-                if let Some($v) = v.downcast_ref::<$t>() {
+            Box::new(move |v: Message| {
+                if let Some($v) = v.get().downcast_ref::<$t>() {
                    $body
                 } else {
                     false
@@ -131,6 +131,43 @@ macro_rules! in_state {
                 let mut actor = actor.as_any();
                 let mut $a = actor.downcast_ref::<$t>().unwrap();
                 $e;
+            }
+        };
+    }
+
+/// Casts some Message to the specified type and call user function with this value. Macro
+/// may be used as extractor of data from a messages, because he may return values from itself
+/// based on the data from a message
+///
+/// # Example
+///
+/// ```
+/// // As validator
+/// cast!(msg, responses::MsgResponse, m => {
+///     assert_eq!(m.data, 99);
+/// });
+///
+/// // As extractor
+/// let data = cast!(msg, responses::MsgResponse, m => {
+///     m.data;
+/// });
+/// ```
+///
+/// # Panic
+///
+/// Macro will case panic, if downcast operation will be failed.
+///
+#[macro_export]
+macro_rules! cast {
+        ($m:ident , $t:path , $v:ident => $body:expr) => {
+            {
+                let msg = $m.get();
+
+                if let Some($v) = msg.downcast_ref::<$t>() {
+                    $body
+                } else {
+                    panic!("Unable to cast a message");
+                }
             }
         };
     }

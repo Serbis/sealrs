@@ -1,8 +1,6 @@
-use crate::actors::actor::Actor;
-use crate::actors::actor_context::ActorContext;
-use crate::actors::props::Props;
-use crate::actors::abstract_actor_ref::ActorRef;
+use crate::actors::prelude::*;
 use crate::examples::actors::logger::logger;
+use crate::actors::message::Message;
 use std::any::Any;
 use std::sync::{Mutex, Arc};
 use match_downcast::*;
@@ -52,39 +50,40 @@ impl BagsMan {
 
 impl Actor for BagsMan {
 
-    fn receive(self: &mut Self, msg: &Box<Any + Send>, mut ctx: ActorContext) -> bool {
+    fn receive(self: &mut Self, msg: Message, mut ctx: ActorContext) -> bool {
+        let msg = msg.get();
         match_downcast_ref!(msg, {
             _m: commands::MsgOk => {
-                ctx.sender.tell(Box::new(responses::MsgResponse {data: 99} ), Some(&ctx.self_))
+                ctx.sender.tell(msg!(responses::MsgResponse {data: 99} ), Some(&ctx.self_))
             },
             _m: commands::MsgOk2 => {
-                ctx.sender.tell(Box::new(responses::MsgResponse2 {data: 99} ), Some(&ctx.self_))
+                ctx.sender.tell(msg!(responses::MsgResponse2 {data: 99} ), Some(&ctx.self_))
             },
             _m: commands::MsgOk3 => {
-                ctx.sender.tell(Box::new(responses::MsgResponse4 {data: 99} ), Some(&ctx.self_))
+                ctx.sender.tell(msg!(responses::MsgResponse4 {data: 99} ), Some(&ctx.self_))
             },
             _m: commands::MsgOk4 => {
-                ctx.sender.tell(Box::new(responses::MsgResponse {data: 99} ), Some(&ctx.self_));
-                ctx.sender.tell(Box::new(responses::MsgResponse2 {data: 99} ), Some(&ctx.self_));
-                ctx.sender.tell(Box::new(responses::MsgResponse3 {data: 99} ), Some(&ctx.self_))
+                ctx.sender.tell(msg!(responses::MsgResponse {data: 99} ), Some(&ctx.self_));
+                ctx.sender.tell(msg!(responses::MsgResponse2 {data: 99} ), Some(&ctx.self_));
+                ctx.sender.tell(msg!(responses::MsgResponse3 {data: 99} ), Some(&ctx.self_))
             },
             _m: commands::MsgOk5 => {
-                ctx.sender.tell(Box::new(responses::MsgResponse {data: 99} ), Some(&ctx.self_));
-                ctx.sender.tell(Box::new(responses::MsgResponse2 {data: 99} ), Some(&ctx.self_));
-                ctx.sender.tell(Box::new(responses::OtherResponse {data: 99} ), Some(&ctx.self_))
+                ctx.sender.tell(msg!(responses::MsgResponse {data: 99} ), Some(&ctx.self_));
+                ctx.sender.tell(msg!(responses::MsgResponse2 {data: 99} ), Some(&ctx.self_));
+                ctx.sender.tell(msg!(responses::OtherResponse {data: 99} ), Some(&ctx.self_))
             },
             _m: commands::MsgOther => {
                 // Respond with incorrect message
-                ctx.sender.tell(Box::new(responses::OtherResponse {data: 99} ), Some(&ctx.self_))
+                ctx.sender.tell(msg!(responses::OtherResponse {data: 99} ), Some(&ctx.self_))
             },
             _m: commands::MsgNoResponse => {
                 // Does not respond
             },
             _m: commands::MsgComplex0 => {
-                ctx.sender.tell(Box::new(responses::MsgResponse {data: 99} ), Some(&ctx.self_))
+                ctx.sender.tell(msg!(responses::MsgResponse {data: 99} ), Some(&ctx.self_))
             },
             _m: commands::MsgComplex1 => {
-                ctx.sender.tell(Box::new(responses::MsgResponse2 {data: 199} ), Some(&ctx.self_))
+                ctx.sender.tell(msg!(responses::MsgResponse2 {data: 199} ), Some(&ctx.self_))
             },
             m: commands::MutState => {
                 self.data = m.data;
@@ -93,7 +92,7 @@ impl Actor for BagsMan {
                 ctx.system.lock().unwrap().stop(&mut ctx.self_);
             },
             _m: commands::ToRef => {
-                let msg = Box::new(logger::Log { text: String::from("Text"), target: logger::LogTarget::File });
+                let msg = msg!(logger::Log { text: String::from("Text"), target: logger::LogTarget::File });
                 if let Some(ref mut x) = self.referal {
                     x.tell(msg, Some(&ctx.self_))
                 }
@@ -111,13 +110,11 @@ impl Actor for BagsMan {
 
 #[cfg(test)]
 mod tests {
-    use crate::testkit::actors::test_local_actor_ref::TestLocalActorRef;
-    use crate::testkit::actors::test_local_actor_system::TestLocalActorSystem;
-    use crate::actors::actor_ref_factory::ActorRefFactory;
-    use crate::actors::abstract_actor_ref::AbstractActorRef;
+    use crate::testkit::actors::prelude::*;
     use crate::examples::actors::logger::logger;
     use std::any::Any;
     use std::time::Duration;
+    use match_downcast::*;
     use super::*;
 
 
@@ -139,17 +136,13 @@ mod tests {
                 (target, probe)
             };
 
-            probe.send(&mut target, Box::new( commands::MsgOk { data: 99 } ));
+            probe.send(&mut target, msg!( commands::MsgOk { data: 99 } ));
             let x = 0;
-            probe.expect_msg(extended_type_matcher!(responses::MsgResponse, v => {
-                if v.data > x {
-                    true
-                } else {
-                    false
-                }
-            }));
+            let msg = probe.expect_msg(type_matcher!(responses::MsgResponse));
 
-            //probe.expect_msg(pat_matcher!(responses::MsgResponse => responses::MsgResponse { data: 99 }));
+            cast!(msg, responses::MsgResponse, m => {
+                assert_eq!(m.data, 99);
+            });
         }
 
         // This test will failed, uncomment for enable
@@ -163,7 +156,7 @@ mod tests {
 //                (target, probe)
 //            };
 //
-//            probe.send(target.clone(), Box::new( commands::MsgOther { data: 99 } ));
+//            probe.send(target.clone(), msg!( commands::MsgOther { data: 99 } ));
 //
 //            // Oops! In this expectation the probe will receive unexpected message
 //            probe.expect_msg(pat_matcher!(responses::MsgResponse => responses::MsgResponse { data: 99 }));
@@ -180,7 +173,7 @@ mod tests {
 //                (target, probe)
 //            };
 //
-//            probe.send(target.clone(), Box::new( commands::MsgNoResponse { data: 99 } ));
+//            probe.send(target.clone(), msg!( commands::MsgNoResponse { data: 99 } ));
 //
 //            // Oops! Actor does not respond with expected timeout
 //            probe.expect_msg(pat_matcher!(responses::OtherResponse => responses::OtherResponse { data: 99 }));
@@ -198,7 +191,7 @@ mod tests {
                 (target, probe)
             };
 
-            probe.send(&mut target, Box::new( commands::MsgOk2 { data: 99 } ));
+            probe.send(&mut target, msg!( commands::MsgOk2 { data: 99 } ));
             probe.expect_msg_any_of(
                 vec![
                     type_matcher!(responses::MsgResponse),
@@ -219,7 +212,7 @@ mod tests {
 //                (target, probe)
 //            };
 //
-//            probe.send(target.clone(), Box::new( commands::MsgOk3 { data: 99 } ));
+//            probe.send(target.clone(), msg!( commands::MsgOk3 { data: 99 } ));
 //
 //            //Oops! Actor responds with message MsgResponse4 which does not in the set
 //            probe.expect_msg_any_of(
@@ -242,7 +235,7 @@ mod tests {
 //                (target, probe)
 //            };
 //
-//            probe.send(target.clone(), Box::new( commands::MsgNoResponse { data: 99 } ));
+//            probe.send(target.clone(), msg!( commands::MsgNoResponse { data: 99 } ));
 //
 //            // Oops! Actor does not respond with any messages with expected timeout
 //            probe.expect_msg(pat_matcher!(responses::OtherResponse => responses::OtherResponse { data: 99 }));
@@ -260,7 +253,7 @@ mod tests {
                 (target, probe)
             };
 
-            probe.send(&mut target, Box::new( commands::MsgOk4 { data: 99 } ));
+            probe.send(&mut target, msg!( commands::MsgOk4 { data: 99 } ));
             probe.expect_msg_all_of(
                 vec![
                     type_matcher!(responses::MsgResponse),
@@ -281,7 +274,7 @@ mod tests {
 //                (target, probe)
 //            };
 //
-//            probe.send(target.clone(), Box::new( commands::MsgOk5 { data: 99 } ));
+//            probe.send(target.clone(), msg!( commands::MsgOk5 { data: 99 } ));
 //
 //            // Oops! Not all messages will be expected. This situation case timeout and it is correct!
 //            // It determines that the specified messages will be guaranteed from the stream, in what
@@ -306,7 +299,7 @@ mod tests {
 //                (target, probe)
 //            };
 //
-//            probe.send(target.clone(), Box::new( commands::MsgNoResponse { data: 99 } ));
+//            probe.send(target.clone(), msg!( commands::MsgNoResponse { data: 99 } ));
 //
 //            // Oops! Actor does not respond with all messages with expected timeout
 //            probe.expect_msg_all_of(
@@ -330,7 +323,7 @@ mod tests {
                 (target, probe)
             };
 
-            probe.send(&mut target, Box::new( commands::MsgNoResponse { data: 99 } ));
+            probe.send(&mut target, msg!( commands::MsgNoResponse { data: 99 } ));
             probe.expect_no_msg(Duration::from_secs(1));
         }
 
@@ -345,7 +338,7 @@ mod tests {
 //                (target, probe)
 //            };
 //
-//            probe.send(target.clone(), Box::new( commands::MsgOther { data: 99 } ));
+//            probe.send(target.clone(), msg!( commands::MsgOther { data: 99 } ));
 //
 //            // Oops! In this expectation the probe should not have received any message, but received
 //            probe.expect_no_msg(Duration::from_secs(1));
@@ -366,9 +359,9 @@ mod tests {
                 (target, probe)
             };
 
-            probe.send(&mut target, Box::new( commands::MsgComplex0 {  } ));
+            probe.send(&mut target, msg!( commands::MsgComplex0 {  } ));
             probe.expect_msg(pat_matcher!(responses::MsgResponse => responses::MsgResponse { data: 99 }));
-            probe.reply(Box::new( commands::MsgComplex1 {  } ));
+            probe.reply(msg!( commands::MsgComplex1 {  } ));
             probe.expect_msg(pat_matcher!(responses::MsgResponse2 => responses::MsgResponse2 { data: 199 }));
         }
 
@@ -392,7 +385,7 @@ mod tests {
                 (target, probe)
             };
 
-            probe.send(&mut target, Box::new(commands::ToRef {}));
+            probe.send(&mut target, msg!(commands::ToRef {}));
             probe.expect_msg(type_matcher!(logger::Log));
             // And here you may reply to this message. Target actor receive is as from the referal actor
         }
@@ -412,7 +405,7 @@ mod tests {
                 (target, probe)
             };
 
-            probe.send(&mut target, Box::new(commands::MutState { data: 599 }));
+            probe.send(&mut target, msg!(commands::MutState { data: 599 }));
 
             // Wait while message will reach the actor and mutate his state
             probe.expect_no_msg(Duration::from_millis(500));
@@ -439,7 +432,7 @@ mod tests {
             };
 
             probe.watch(&target);
-            probe.send(&mut target, Box::new(commands::Bomb {  }));
+            probe.send(&mut target, msg!(commands::Bomb {  }));
             probe.expect_terminated(&target);
         }
 
@@ -465,7 +458,7 @@ mod tests {
 
         // Flat matcher ( sweetened version of the raw matcher function )
         let flat_matcher = matcher!(v => {
-            if let Some(m) = v.downcast_ref::<logger::Log>() {
+            if let Some(m) = v.get().downcast_ref::<logger::Log>() {
                 if m.text.len() > 100 {
                     match m.target {
                         logger::LogTarget::StdOut => true,

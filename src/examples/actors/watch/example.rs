@@ -1,5 +1,4 @@
-use crate::actors::local_actor_system::LocalActorSystem;
-use crate::actors::actor_ref_factory::ActorRefFactory;
+use crate::actors::prelude::*;
 use super::watcher;
 use super::target;
 use std::time::Duration;

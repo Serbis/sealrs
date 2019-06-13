@@ -1,6 +1,6 @@
-use crate::actors::local_actor_system::LocalActorSystem;
-use crate::actors::actor_ref_factory::ActorRefFactory;
+use crate::actors::prelude::*;
 use crate::examples::actors::basic::basic_actor;
+use std::sync::{Mutex, Arc};
 use std::thread;
 
 pub fn run() {
@@ -9,7 +9,7 @@ pub fn run() {
     let mut printer = system.lock().unwrap()
         .actor_of(basic_actor::props(), Some("printer"));
 
-    let msg = Box::new(basic_actor::Print { text: String::from("Hello world!") });
+    let msg = msg!(basic_actor::Print { text: String::from("Hello world!") });
     printer.tell(msg, None);
 
     thread::park();

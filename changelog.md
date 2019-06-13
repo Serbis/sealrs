@@ -1,3 +1,9 @@
+# 0.7.0
+
+* Refactored message passing mechanism
+* Developed ask operation
+* Expectors in TestProbe now returns intercepted message/s
+
 # 0.6.1
 
 Small edits in the matchers (testkit) logic (move in closures)

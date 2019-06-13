@@ -1,6 +1,4 @@
-use crate::actors::actor::Actor;
-use crate::actors::actor_context::ActorContext;
-use crate::actors::props::Props;
+use crate::actors::prelude::*;
 use std::any::Any;
 use std::sync::{Mutex, Arc};
 use match_downcast::*;
@@ -35,7 +33,8 @@ impl Actor for BasicActor {
         println!("BasicActor is stopped")
     }
 
-    fn receive(self: &mut Self, msg: &Box<Any + Send>, _ctx: ActorContext) -> bool {
+    fn receive(self: &mut Self, msg: Message, _ctx: ActorContext) -> bool {
+        let msg = msg.get();
         match_downcast_ref!(msg, {
             m: Print => {
                 self.printed_chars = self.printed_chars + m.text.len();

@@ -6,8 +6,11 @@
 //!
 use crate::actors::mailbox::Mailbox;
 use crate::actors::envelope::Envelope;
-use std::collections::vec_deque::VecDeque;
 use crate::actors::abstract_actor_ref::ActorRef;
+use crate::actors::message::Message;
+use std::collections::vec_deque::VecDeque;
+
+use std::sync::{Arc, Mutex};
 
 pub struct UnboundMailbox {
     is_planned: bool,
@@ -51,7 +54,7 @@ impl Mailbox for UnboundMailbox {
 
         while true {
             if self.queue.len() > 0 {
-                dead_letters.tell(Box::new(self.queue.pop_front().unwrap()), Some(&sender));
+                dead_letters.tell(msg!(self.queue.pop_front().unwrap()), Some(&sender)); //(self.queue.pop_front().unwrap()
             } else {
                 break;
             }

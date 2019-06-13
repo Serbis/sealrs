@@ -1,7 +1,4 @@
-use crate::actors::actor::Actor;
-use crate::actors::actor_context::ActorContext;
-use crate::actors::props::Props;
-use crate::actors::abstract_actor_ref::ActorRef;
+use crate::actors::prelude::*;
 use crate::examples::actors::logger::file_writer;
 use crate::examples::actors::logger::stdout_writer;
 use std::any::Any;
@@ -38,16 +35,17 @@ impl Logger {
 }
 
 impl Actor for Logger {
-    fn receive(self: &mut Self, msg: &Box<Any + Send>, ctx: ActorContext) -> bool {
+    fn receive(self: &mut Self, msg: Message, ctx: ActorContext) -> bool {
+        let msg = msg.get();
         match_downcast_ref!(msg, {
             m: Log => {
                 match m.target {
                     LogTarget::File => {
-                        let msg = Box::new(file_writer::Write { text: m.text.to_string() });
+                        let msg = msg!(file_writer::Write { text: m.text.to_string() });
                         self.file_writer.tell(msg , Some(&ctx.self_))
                     },
                     LogTarget::StdOut => {
-                        let msg = Box::new(stdout_writer::Write { text: m.text.to_string() });
+                        let msg = msg!(stdout_writer::Write { text: m.text.to_string() });
                         self.stdout_writer.tell(msg, Some(&ctx.self_))
                     }
                 };

@@ -16,6 +16,7 @@ use crate::actors::abstract_actor_ref::AbstractActorRef;
 use crate::actors::abstract_actor_ref::ActorRef;
 use crate::actors::local_actor_ref::LocalActorRef;
 use crate::actors::watcher::WatchingEvents;
+use crate::actors::message::Message;
 use std::any::Any;
 
 
@@ -110,7 +111,7 @@ impl ActorCell {
     /// to deadLetter.
     pub fn send(self: &mut Self,
                 boxed_self: &TSafe<ActorCell>,
-                msg: Box<Any + Send + 'static>,
+                msg: Message,
                 rself: Option<ActorRef>,
                 to_ref: Box<AbstractActorRef + Send>) {
 
@@ -140,7 +141,7 @@ impl ActorCell {
     /// flags.
     pub fn force_send(self: &mut Self,
                       boxed_self: TSafe<ActorCell>,
-                      msg: Box<Any + Send + 'static>,
+                      msg: Message,
                       rself: Option<Box<AbstractActorRef + Send>>,
                       to_ref: Box<AbstractActorRef + Send>) {
 

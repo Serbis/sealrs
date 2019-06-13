@@ -1,7 +1,4 @@
-use crate::actors::actor::Actor;
-use crate::actors::abstract_actor_ref::ActorRef;
-use crate::actors::message::Message;
-use crate::actors::actor_context::ActorContext;
+use crate::actors::prelude::*;
 use crate::actors::watcher::events::Terminated;
 use crate::actors::props::Props;
 use match_downcast::*;
@@ -38,8 +35,8 @@ impl Actor for Watcher {
         ctx.system.lock().unwrap().unwatch(&ctx.self_, &self.target);
     }
 
-    fn receive(self: &mut Self, msg: &Message, ctx: ActorContext) -> bool {
-        match_downcast_ref!(msg, {
+    fn receive(self: &mut Self, msg: Message, ctx: ActorContext) -> bool {
+        match_downcast_ref!(msg.get(), {
             _m: Terminated => {
                 // Sender of this message is the target actor. It indicates that the target actor was
                 // stopped

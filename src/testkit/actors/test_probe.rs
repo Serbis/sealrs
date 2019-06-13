@@ -326,7 +326,7 @@ impl TestProbe {
 
             let result = self.match_results.lock().unwrap();
             let elapsed = started.elapsed().unwrap().as_millis();
-            let mut timeout = elapsed >= self.timeout.as_millis();
+            let timeout = elapsed >= self.timeout.as_millis();
 
             if !timeout {
                 let mut counter = 0;
@@ -367,7 +367,7 @@ impl TestProbe {
             }
         }
 
-        let mut messages = self.messages.lock().unwrap();
+        let messages = self.messages.lock().unwrap();
         messages.iter().map(|v| v.clone()).collect()
     }
 
@@ -476,7 +476,7 @@ impl TestProbe {
     /// Run probe timer witch must be unlock probe_cvar, that indicated what expectation does not
     /// satisfied with specified timeout
     fn run_probe_timer(&mut self, timeout: Duration) -> timer::Guard {
-        let mut cvar = self.probe_cvar.clone();
+        let cvar = self.probe_cvar.clone();
         self.timer.schedule_with_delay(chrono::Duration::from_std(timeout).ok().unwrap(), move || {
             cvar.notify_one();
             //println!("xxx");

@@ -4,7 +4,6 @@
 use crate::actors::actor::Actor;
 use crate::actors::message::Message;
 use crate::actors::actor_context::ActorContext;
-use std::any::Any;
 
 pub struct SyntheticActor {}
 

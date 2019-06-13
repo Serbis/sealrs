@@ -32,7 +32,7 @@ impl Watcher {
 
     /// Subscribe the watcher actor to the events of the observed actor. All subscriptions will be
     /// automatically dropped after Terminated event will be registered.
-    pub fn watch(&mut self, watcher: &ActorRef, mut observed: &ActorRef) {
+    pub fn watch(&mut self, watcher: &ActorRef, observed: &ActorRef) {
         trace!("{} watch {}", watcher, observed);
         let obs_path = observed.path().clone();
         if self.feed.contains_key(&obs_path) {
@@ -52,7 +52,7 @@ impl Watcher {
     }
 
     /// Subscribe the watcher actor from the events of the observed actor
-    pub fn unwatch(&mut self, mut watcher: &ActorRef, mut observed: &ActorRef) {
+    pub fn unwatch(&mut self, watcher: &ActorRef, observed: &ActorRef) {
         trace!("{} unwatch {}", watcher, observed);
         let obs_path = observed.path().clone();
         if self.feed.contains_key(&obs_path) {
@@ -87,7 +87,7 @@ impl Watcher {
 
     /// Registers some event from an actor. This operation cause to send corresponding message to
     /// the all actors which was subscribed for source actor.
-    pub fn register_event(&mut self, mut from: &ActorRef, event: WatchingEvents) {
+    pub fn register_event(&mut self, from: &ActorRef, event: WatchingEvents) {
         let obs_path = from.path().clone();
         match event {
             WatchingEvents::Terminated => {

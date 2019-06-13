@@ -1,7 +1,6 @@
 use crate::actors::prelude::*;
 use crate::examples::actors::logger::file_writer;
 use crate::examples::actors::logger::stdout_writer;
-use std::any::Any;
 use std::sync::{Mutex, Arc};
 use match_downcast::*;
 

@@ -1,5 +1,4 @@
 use crate::actors::prelude::*;
-use std::any::Any;
 use std::sync::{Mutex, Arc};
 use match_downcast::*;
 

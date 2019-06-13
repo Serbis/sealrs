@@ -28,7 +28,7 @@ impl <V: Send + Clone, E: Send + Clone> WrappedFuture<V, E> {
     ///
     /// See the module level documentation.
     ///
-    pub fn map<S, F>(&mut self, mut f: F) -> WrappedFuture<S, E>
+    pub fn map<S, F>(&mut self, f: F) -> WrappedFuture<S, E>
         where S:  Send + Clone + 'static,
               F: FnMut(&V) -> Result<S, E> + Send + 'static
     {
@@ -56,7 +56,7 @@ impl <V: Send + Clone, E: Send + Clone> WrappedFuture<V, E> {
     ///
     /// See the module level documentation.
     ///
-    pub fn flat_map<S, F>(&mut self, mut f: F) -> WrappedFuture<S, E>
+    pub fn flat_map<S, F>(&mut self, f: F) -> WrappedFuture<S, E>
         where S: Send + Clone + 'static,
               F: FnMut(&V) -> Result<WrappedFuture<S, E>, E> + Send + 'static
     {

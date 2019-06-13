@@ -5,7 +5,7 @@
 //! unlimited number of times.
 use crate::common::tsafe::TSafe;
 use std::any::Any;
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{MutexGuard};
 
 /// Wraps any data type to the message wrapper
 ///

@@ -5,7 +5,6 @@ use crate::actors::abstract_actor_ref::AbstractActorRef;
 use crate::actors::abstract_actor_system::AbstractActorSystem;
 use crate::actors::message::Message;
 use crate::common::tsafe::TSafe;
-use std::any::Any;
 
 
 pub struct Envelope {

@@ -46,7 +46,7 @@ impl LocalActorSystem {
     pub fn new() -> TSafe<LocalActorSystem> {
         let cpu_count = num_cpus::get();
         let dispatcher = tsafe!(DefaultDispatcher::new(cpu_count as u32));
-        let mut system = LocalActorSystem {
+        let system = LocalActorSystem {
             nids: 0,
             dispatcher: dispatcher.clone(),
             dead_letters: None,
@@ -99,7 +99,7 @@ impl ActorRefFactory for LocalActorSystem {
 
         let path = tsafe!(ActorPath::new(&aname));
 
-        let mut cell = ActorCell::new(
+        let cell = ActorCell::new(
             tsafe!(self.clone()),
             path.clone(),
             props.actor,
@@ -148,12 +148,12 @@ impl ActorRefFactory for LocalActorSystem {
     }
 
     /// Register watcher for receive 'watching events' from observed actor
-    fn watch(&mut self, watcher: &ActorRef, mut observed: &ActorRef) {
+    fn watch(&mut self, watcher: &ActorRef, observed: &ActorRef) {
         self.watcher.lock().unwrap().watch(watcher, observed);
     }
 
     /// Unregister watcher from receive 'watching events' from observed actor
-    fn unwatch(&mut self, mut watcher: &ActorRef, mut observed: &ActorRef) {
+    fn unwatch(&mut self, watcher: &ActorRef, observed: &ActorRef) {
         self.watcher.lock().unwrap().unwatch(watcher, observed);
     }
 }

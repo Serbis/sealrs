@@ -17,7 +17,6 @@ use crate::actors::abstract_actor_ref::ActorRef;
 use crate::actors::local_actor_ref::LocalActorRef;
 use crate::actors::watcher::WatchingEvents;
 use crate::actors::message::Message;
-use std::any::Any;
 
 
 pub struct ActorCell {

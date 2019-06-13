@@ -144,7 +144,7 @@ impl ThreadPinnedExecutor {
     }
 
     /// Stops executor threads
-    pub fn stop(mut self) {
+    pub fn stop(self) {
         for stop in self.stops.iter() {
             *stop.lock().unwrap() = true;
         }

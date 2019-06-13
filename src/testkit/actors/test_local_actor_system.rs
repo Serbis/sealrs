@@ -47,10 +47,10 @@ impl TestLocalActorSystem {
 
         // ------- mirror ---------
         let cpu_count = num_cpus::get();
-        let mut dispatcher = DefaultDispatcher::new(cpu_count as u32);
+        let dispatcher = DefaultDispatcher::new(cpu_count as u32);
         //dispatcher.run();
         let dispatcher = tsafe!(dispatcher);
-        let mut system = TestLocalActorSystem {
+        let system = TestLocalActorSystem {
             nids: 0,
             dispatcher: dispatcher.clone(),
             dead_letters: None,
@@ -99,7 +99,7 @@ impl ActorRefFactory for TestLocalActorSystem {
 
         let path = tsafe!(ActorPath::new(&aname));
 
-        let mut cell = ActorCell::new(
+        let cell = ActorCell::new(
             tsafe!(self.clone()),
             path.clone(),
             props.actor,
@@ -147,12 +147,12 @@ impl ActorRefFactory for TestLocalActorSystem {
     }
 
     /// Register watcher for receive 'watching events' from observed actor
-    fn watch(&mut self, watcher: &ActorRef, mut observed: &ActorRef) {
+    fn watch(&mut self, watcher: &ActorRef, observed: &ActorRef) {
         self.watcher.lock().unwrap().watch(watcher, observed);
     }
 
     /// Unregister watcher from receive 'watching events' from observed actor
-    fn unwatch(&mut self, mut watcher: &ActorRef, mut observed: &ActorRef) {
+    fn unwatch(&mut self, mut watcher: &ActorRef, observed: &ActorRef) {
         self.watcher.lock().unwrap().unwatch(watcher, observed);
     }
 }

@@ -114,7 +114,7 @@ mod tests {
     use crate::examples::actors::logger::logger;
     use std::any::Any;
     use std::time::Duration;
-    use match_downcast::*;
+    use std::thread;
     use super::*;
 
 
@@ -137,7 +137,6 @@ mod tests {
             };
 
             probe.send(&mut target, msg!( commands::MsgOk { data: 99 } ));
-            let x = 0;
             let msg = probe.expect_msg(type_matcher!(responses::MsgResponse));
 
             cast!(msg, responses::MsgResponse, m => {
@@ -442,13 +441,13 @@ mod tests {
 
 
         // Match my message type
-        let type_matcher = type_matcher!(logger::Log);
+        let _type_matcher = type_matcher!(logger::Log);
 
         // Match by pattern (without guards)
-        let pat_mather = pat_matcher!(logger::Log => logger::Log { text: _, target: logger::LogTarget::StdOut });
+        let _pat_mather = pat_matcher!(logger::Log => logger::Log { text: _, target: logger::LogTarget::StdOut });
 
         // Match by type with extended clarifications
-        let extended_matcher = extended_type_matcher!(logger::Log, v => {
+        let _extended_matcher = extended_type_matcher!(logger::Log, v => {
             if v.text.len() > 100 {
                 true
             } else {
@@ -457,7 +456,7 @@ mod tests {
         });
 
         // Flat matcher ( sweetened version of the raw matcher function )
-        let flat_matcher = matcher!(v => {
+        let _flat_matcher = matcher!(v => {
             if let Some(m) = v.get().downcast_ref::<logger::Log>() {
                 if m.text.len() > 100 {
                     match m.target {
@@ -473,7 +472,7 @@ mod tests {
         });
 
         // Raw matcher function, without any syntactic sugar
-        let raw_matcher = Box::new(|v: &Box<Any + Send>| {
+        let _raw_matcher = Box::new(|v: &Box<Any + Send>| {
             if let Some(m) = v.downcast_ref::<logger::Log>() {
                 if m.text.len() > 100 {
                     match m.target {

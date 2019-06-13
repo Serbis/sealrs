@@ -1,9 +1,7 @@
 use crate::actors::prelude::*;
-use crate::common::tsafe::TSafe;
 use super::second;
 use std::sync::{Mutex, Arc};
 use match_downcast::*;
-use std::time::Duration;
 
 pub fn props(second: &ActorRef) -> Props {
     Props::new(tsafe!(First::new(&second)))

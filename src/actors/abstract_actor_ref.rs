@@ -1,7 +1,6 @@
 use crate::actors::actor_path::ActorPath;
 use crate::actors::actor_cell::ActorCell;
 use crate::actors::message::Message;
-use crate::actors::actor_ref_factory::ActorRefFactory;
 use crate::actors::abstract_actor_system::AbstractActorSystem;
 use crate::futures::future::WrappedFuture;
 use crate::common::tsafe::TSafe;

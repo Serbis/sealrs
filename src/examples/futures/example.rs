@@ -110,11 +110,11 @@ fn future_combinators() {
     let mut fut2: WrappedFuture<u32, TSafe<Fail + Send>> =
         Future::asyncp(|| Ok(500 + 500), executor.clone());
 
-    fut2.map(|v| {
+    fut2.map(|_| {
         // Oops! Some error occurs in this map
         let err = tsafe!(MyError::ExampleError { text: String::from("Oops!") });
         Err(err)
-    }).recover(|e| {
+    }).recover(|_| {
         // Handle error in this place
 
         // And return 100 as recovery result ( as default value )

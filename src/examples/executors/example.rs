@@ -18,5 +18,5 @@ fn thread_pinned_dispatcher() {
         let f1 = Box::new( || { println!("Task on explicitly selected thread with id 6") });
         executor.execute(f1, Some( Box::new(TaskOptions { thread_id: Some(6) } )));
 
-    thread::sleep_ms(500);
+    thread::park();
 }

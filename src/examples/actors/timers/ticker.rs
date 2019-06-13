@@ -1,6 +1,5 @@
 use crate::actors::prelude::*;
 use crate::common::tsafe::TSafe;
-use std::any::Any;
 use std::sync::{Mutex, Arc};
 use match_downcast::*;
 use std::time::Duration;

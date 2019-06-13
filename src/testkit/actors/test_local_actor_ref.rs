@@ -71,7 +71,7 @@ impl AbstractActorRef for TestLocalActorRef {
 
     /// Identical to original
     fn ask(&mut self, factory: &mut AbstractActorSystem, msg: Message) -> WrappedFuture<Message, AskTimeoutError> {
-        self.ask_timeout(factory, Duration::from_secs(3), msg)
+        self.ask_timeout(factory, Duration::from_millis(500), msg)
     }
 
     /// Identical to original

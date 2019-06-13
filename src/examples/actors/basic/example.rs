@@ -12,5 +12,7 @@ pub fn run() {
     let msg = msg!(basic_actor::Print { text: String::from("Hello world!") });
     printer.tell(msg, None);
 
-    thread::park();
+    thread::sleep_ms(1000);
+
+    system.lock().unwrap().terminate();
 }

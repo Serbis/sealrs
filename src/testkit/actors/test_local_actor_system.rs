@@ -168,6 +168,12 @@ impl AbstractActorSystem for TestLocalActorSystem {
     fn register_watch_event(&self, from: &ActorRef, event: WatchingEvents) {
         self.watcher.lock().unwrap().register_event(&from, event);
     }
+
+    /// Stops the actor system
+    fn terminate(&mut self) {
+        self.dispatcher.lock().unwrap().stop();
+        self.dead_letters = None;
+    }
 }
 
 impl Clone for TestLocalActorSystem {

@@ -12,6 +12,9 @@ pub trait AbstractActorSystem: ActorRefFactory {
 
     /// Register new watching event from the specified actor
     fn register_watch_event(&self, from: &ActorRef, event: WatchingEvents);
+
+    /// Stops the actor system
+    fn terminate(&mut self);
 }
 
 //TODO остановка акторной системы

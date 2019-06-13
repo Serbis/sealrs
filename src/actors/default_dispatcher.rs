@@ -99,6 +99,10 @@ impl DefaultDispatcher {
 
         true
     }
+
+    pub fn stop(&self) {
+        self.executor.stop();
+    }
 }
 
 impl Executor for DefaultDispatcher {

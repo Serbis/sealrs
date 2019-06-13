@@ -1,3 +1,7 @@
+# 0.7.2
+
+* Realized actor system termination
+
 # 0.7.1
 
 * Default Ask timeout changed from 3 seconds to 500 milliseconds to TestLocalActorRef

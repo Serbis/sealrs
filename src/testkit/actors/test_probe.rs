@@ -385,7 +385,7 @@ impl TestProbe {
 
         // Set 'all' matcher
         *self.matchers.lock().unwrap() = vec![matcher! { _v => true }];
-        *self.match_results.lock().unwrap() = vec![Some(false)];
+        *self.match_results.lock().unwrap() = vec![None];
 
         // Start timer
         let _guard = self.run_probe_timer(duration);
@@ -547,6 +547,7 @@ impl Actor for TestProbeActor {
         let mut match_results = self.match_results.lock().unwrap();
 
         let mut counter = 0;
+        println!("Matchers len={}", matchers.len());
         for m in matchers.iter() {
             if match_results[counter] == None {
                 let result = (m)(msg.clone());

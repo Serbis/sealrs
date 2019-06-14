@@ -1,3 +1,7 @@
+# 0.8.1
+
+# Fixed bag in TestProbe::expect_no_msg
+
 # 0.8.0
 
 * Developed future blocking operations

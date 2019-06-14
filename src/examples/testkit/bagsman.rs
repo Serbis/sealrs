@@ -331,13 +331,13 @@ mod tests {
 //        {
 //            let (mut target, mut probe) = {
 //                let mut system = system.lock().unwrap();
-//                let mut target = system.actor_of(self::props(), None);
+//                let mut target = system.actor_of(self::props(None), None);
 //                let mut probe = system.create_probe(Some("probe"));
 //
 //                (target, probe)
 //            };
 //
-//            probe.send(target.clone(), msg!( commands::MsgOther { data: 99 } ));
+//            probe.send(&mut target, msg!( commands::MsgOther { data: 99 } ));
 //
 //            // Oops! In this expectation the probe should not have received any message, but received
 //            probe.expect_no_msg(Duration::from_secs(1));

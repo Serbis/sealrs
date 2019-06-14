@@ -13,8 +13,8 @@ This library have a very reach documentation with big count of examples and expl
 
 # New in release
 
-* Developed future blocking operations. [DOC](https://docs.rs/sealrs/*/sealrs/futures/index.html#blocking-operations) for info about new releases.
-* Presented converter from the sealrs futures to the rust futures [DOC](https://docs.rs/sealrs/*/sealrs/futures/index.html#futures-conversion) for info about new releases.
+* Developed future blocking operations. [DOC](https://docs.rs/sealrs/*/sealrs/futures/index.html#blocking-operations).
+* Presented converter from the sealrs futures to the rust futures [DOC](https://docs.rs/sealrs/*/sealrs/futures/index.html#futures-conversion).
 
 See [changelog](https://github.com/Serbis/sealrs/blob/master/changelog.md) for info about new releases.
 

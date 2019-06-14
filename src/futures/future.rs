@@ -10,7 +10,9 @@ use super::promise::Promise;
 use super::async_promise::AsyncPromise;
 use crate::common::tsafe::TSafe;
 use crate::executors::executor::Executor;
-use std::sync::{Arc, Mutex};
+use std::sync::mpsc;
+use std::sync::{Arc, Mutex, Condvar};
+use std::time::Duration;
 
 /// Wrapper for future. This object encapsulate original future and allows to user set of
 /// simplified methods mirrored from the original future (read as methods with sweetened syntax).
@@ -75,13 +77,82 @@ impl <V: Send + Clone, E: Send + Clone> WrappedFuture<V, E> {
     {
         self.inner.lock().unwrap().on_complete(Box::new(f));
     }
+
+    /// Return completion state of the future
+    pub fn is_completed(&self) -> bool {
+        self.inner.lock().unwrap().value.is_some()
+    }
+
+    /// Waits (blocks calling thread) while future will be completed in a specified timeout. If future was completed
+    /// before timeout was reached, true will be returned. If timeout occurs, returned false.
+    pub fn ready(&mut self, timeout: Duration) -> bool {
+        let r = self.inner.lock().unwrap().ready(timeout);
+        if r.is_err() {
+            let awaiter = r.err().unwrap();
+            awaiter.recv_timeout(timeout);
+            self.is_completed()
+        } else {
+            true
+        }
+    }
+
+    /// Waits (blocks calling thread) while future will be completed in a specified timeout. If future was completed
+    /// before timeout was reached, value of future   packed in Ok will be returned. If timeout occurs, returned
+    /// Err(TimeoutError).
+    pub fn result(&mut self, timeout: Duration) -> Result<Result<V, E>, TimeoutError> {
+        let r = self.inner.lock().unwrap().ready(timeout);
+        if r.is_err() {
+            let awaiter = r.err().unwrap();
+            awaiter.recv_timeout(timeout);
+
+            let inner = self.inner.lock().unwrap();
+            let value = inner.value.as_ref();
+
+            if value.is_some() {
+                let value = value.as_ref().unwrap();
+                if value.is_ok() {
+                    Ok(Ok(value.as_ref().ok().unwrap().clone()))
+                } else {
+                    Ok(Err(value.as_ref().err().unwrap().clone()))
+                }
+            } else {
+                Err(TimeoutError {})
+            }
+        } else {
+            let inner = self.inner.lock().unwrap();
+            let value = inner.value.as_ref().unwrap();
+
+            if value.is_ok() {
+                Ok(Ok(value.as_ref().ok().unwrap().clone()))
+            } else {
+                Ok(Err(value.as_ref().err().unwrap().clone()))
+            }
+        }
+    }
+
+    /// Returns value of the completed future. Attention - this method must never be called on the empty future! If
+    /// this situation will happen, panic will be occurs.
+    pub fn get_value(&self) -> Result<V, E> {
+        let inner = self.inner.lock().unwrap();
+        let value = inner.value.as_ref().unwrap();
+
+        if value.is_ok() {
+            Ok(value.as_ref().ok().unwrap().clone())
+        } else {
+            Err(value.as_ref().err().unwrap().clone())
+        }
+    }
 }
 
 
 pub struct Future<V: Send + 'static, E: Send + Clone + 'static> {
-    value: Option<Result<V, E>>,
-    next: Option<Box<FnMut(&Result<V, E>) -> () + Send>>
+    pub value: Option<Result<V, E>>,
+    next: Option<Box<FnMut(&Result<V, E>) -> () + Send>>,
+    awaiter: Option<mpsc::Sender<bool>>
 }
+
+pub struct TimeoutError {}
+
 
 impl <V: Send + Clone, E: Send + Clone> Future<V , E> {
 
@@ -99,6 +170,7 @@ impl <V: Send + Clone, E: Send + Clone> Future<V , E> {
         Future {
             value: None,
             next: None,
+            awaiter: None
         }
     }
 
@@ -119,6 +191,10 @@ impl <V: Send + Clone, E: Send + Clone> Future<V , E> {
                     f(v);
                 }
             }
+        }
+
+        if self.awaiter.is_some() {
+            self.awaiter.as_ref().unwrap().send(true);
         }
     }
 
@@ -231,6 +307,19 @@ impl <V: Send + Clone, E: Send + Clone> Future<V , E> {
                     f(v)
                 }
             }
+        }
+    }
+
+    /// Returns Ok if future is completed of channel wich will be filled when future will be completed
+    pub fn ready(&mut self, timeout: Duration) -> Result<(), mpsc::Receiver<bool>> {
+        if self.value.is_some() {
+            Ok(())
+        } else {
+            let (sender, receiver) = mpsc::channel();
+
+            self.awaiter = Some(sender.clone());
+
+            Err(receiver)
         }
     }
 }

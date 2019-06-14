@@ -1,3 +1,8 @@
+# 0.8.0
+
+* Developed future blocking operations
+* Presented converter from the sealrs futures to the rust futures
+
 # 0.7.2
 
 * Realized actor system termination

@@ -525,10 +525,18 @@
 //! message or with AskTimeoutError if target actor does not respond with some timeout. This
 //! operation may be used in three way:
 //!
-//! * Interact with actor system from synchronous world. This feature will be presented in the
-//! nearest release of the futures. The essence of this patterns consists in that you Ask target,
-//! and block your thread on the Future, which returned be the function. This operation will
-//! permits to you interact with actors as if they would  be a some synchronous function.
+//! * Interact with actor system from synchronous world. The essence of this patterns consists in
+//! that you Ask target, and block your thread on the Future, which returned be the function. This
+//! operation will permits to you interact with actors as if they would  be a some synchronous
+//! function. This operation must be never used from the actor system, because it will cause to block
+//! of the dispatcher, that will very fast leads to dead lock of the entire system.
+//!
+//! ```
+//! let req = actor.ask(&mut (*system.lock().unwrap()), msg!(SomeRequest {}));
+//! let result = req.result(Duration::from_secs(5));
+//!
+//! // Do some actions with received message or handle error
+//! ```
 //! * Connection of actor's world with future's world. This situation is very often occurs in the
 //! web development. Most count of modern server libraries, more or less supports future paradigm.
 //! This features consists in than when server receives a request, you do not process him in the

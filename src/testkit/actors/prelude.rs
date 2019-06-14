@@ -10,3 +10,4 @@ pub use crate::actors::timers::Timers;
 pub use crate::actors::abstract_actor_ref::ActorRef;
 pub use crate::testkit::actors::test_local_actor_ref::TestLocalActorRef;
 pub use crate::testkit::actors::test_local_actor_system::TestLocalActorSystem;
+pub use crate::actors::abstract_actor_system::AbstractActorSystem;

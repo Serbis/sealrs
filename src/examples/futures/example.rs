@@ -7,6 +7,7 @@ use crate::executors::thread_pinned_executor::ThreadPinnedExecutor;
 use std::sync::{Arc, Mutex};
 use failure::Fail;
 use std::thread;
+use std::time::Duration;
 
 #[derive(Debug, Fail)]
 enum MyError {
@@ -20,7 +21,8 @@ enum MyError {
 pub fn run() {
     //completable_promise();
     //async_promise();
-    future_combinators();
+    //future_combinators();
+    future_await();
 
     thread::park();
 }
@@ -159,4 +161,62 @@ fn future_combinators() {
     }).on_complete(|v| {
         println!("Result={}", v.as_ref().unwrap())
     });
+}
+
+pub fn future_await() {
+    let mut executor = tsafe!(ThreadPinnedExecutor::new().run());
+
+    // Ready
+
+    let mut fut1: WrappedFuture<u32, TSafe<Fail + Send>> =
+        Future::asyncp(|| {
+            thread::sleep(Duration::from_secs(1));
+            Ok(100)
+        }, executor.clone());
+
+    let ready = fut1.ready(Duration::from_secs(3));
+
+    match ready {
+        true => {
+            match fut1.get_value() {
+                Ok(value) => {
+                    println!("fut1 completed with Ok({})", value);
+                },
+                Err(error) => {
+                    println!("fut1 completed with Err({})", error.lock().unwrap());
+                }
+            }
+
+        },
+        false => {
+            println!("fut1 does not completed with timeout");
+        }
+    }
+
+    // Result
+
+    let mut fut2: WrappedFuture<u32, TSafe<Fail + Send>> =
+        Future::asyncp(|| {
+            thread::sleep(Duration::from_secs(1));
+            Ok(100)
+        }, executor.clone());
+
+    let result = fut2.result(Duration::from_secs(3));
+
+    match result {
+        Ok(value) => {
+            match value {
+                Ok(value) => {
+                    println!("fut2 completed with Ok({})", value);
+                },
+                Err(error) => {
+                    println!("fut2 completed with Err({})", error.lock().unwrap());
+                }
+            }
+        },
+        Err(_) => {
+            println!("fut2 does not completed with timeout");
+        }
+    }
+
 }

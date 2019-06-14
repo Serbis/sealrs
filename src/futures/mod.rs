@@ -12,6 +12,8 @@
 //!     4. [on_complete](#on_complete)
 //!     5. [Example of chaining](#example-of-chaining)
 //! 6. [Requirements to V and E](#requirements-to-v-and-e)
+//! 7. [Blocking operations](#blocking-operations)
+//! 8. [Futures conversion](#futures-conversion)
 //!
 //! # Introduction
 //!
@@ -152,7 +154,7 @@
 //! as next combinator, it will accept String type as result with value calculated in the inner
 //! future.
 //!
-//! # recover
+//! ## recover
 //!
 //! Recovers from error if it's occurs at previous stage. Never calls if previous result was success.
 //!
@@ -229,7 +231,150 @@
 //! restrictions is use interior mutability. If your object is conflicts with Promise type's
 //! requirements, simply wrap it to Arc\<Mutex\<T>> and all will be work.
 //!
+//! # Blocking operations
 //!
+//! Future have feature for work in fully synchronous way, when the calling thread blocks on waiting
+//! on that the future will be completed. Immediately want to warn that this option allowed only in
+//! test scenarios and when you need to interact with future from a synchronous code. In all other
+//! situations it is a very scary antipattern and his usage may cause to very serious errors in the
+//! asynchronous logic. WrappedFuture object presents two synchronous methods.
+//!
+//! * Ready - waits while future will be completed in a specified timeout. If future was completed
+//! before timeout was reached, true will be returned. If timeout occurs, returned false.
+//!
+//! ```
+//! let mut fut1: WrappedFuture<u32, TSafe<Fail + Send>> =
+//!     Future::asyncp(|| {
+//!         thread::sleep(Duration::from_secs(1));
+//!         Ok(100)
+//!     }, executor.clone());
+//!
+//! let ready = fut1.ready(Duration::from_secs(3));
+//!
+//! match ready {
+//!     true => {
+//!         match fut1.get_value() {
+//!             Ok(value) => {
+//!                 println!("fut1 completed with Ok({})", value);
+//!             },
+//!             Err(error) => {
+//!                 println!("fut1 completed with Err({})", error.lock().unwrap());
+//!             }
+//!         }
+//!     },
+//!     false => {
+//!         println!("fut1 does not completed with timeout");
+//!     }
+//! }
+//! ```
+//!
+//! * Result - waits while future will be completed in a specified timeout. If future was completed
+//!  before timeout was reached, value of future packed in Ok will be returned. If timeout occurs, returned
+//!  Err(TimeoutError).
+//!
+//! ```
+//! let mut fut2: WrappedFuture<u32, TSafe<Fail + Send>> =
+//!     Future::asyncp(|| {
+//!         thread::sleep(Duration::from_secs(1));
+//!         Ok(100)
+//!     }, executor.clone());
+//!
+//! let result = fut2.result(Duration::from_secs(3));
+//!
+//! match result {
+//!     Ok(value) => {
+//!         match value {
+//!             Ok(value) => {
+//!                 println!("fut2 completed with Ok({})", value);
+//!             },
+//!             Err(error) => {
+//!                 println!("fut2 completed with Err({})", error.lock().unwrap());
+//!             }
+//!         }
+//!     },
+//!     Err(_) => {
+//!         println!("fut2 does not completed with timeout");
+//!     }
+//! }
+//! ```
+//!
+//! Full code of the example you may find in the examples submodule.
+//!
+//!
+//! # Futures conversion
+//!
+//! Despite the fact that the library futures internally is very different from default Rust futures, it may
+//! be simply converted to they. This is possible because both futures type uses identical completion paradigm.
+//! For convert sealrs futures to the rust futures, you need implement simple converter. I intentionally did not
+//! turn it on to the library in order to don't creates the 'futures' crate versions incompatibility. You may
+//! copy this file to anywhere in your project and use it.
+//!
+//! ```
+//! use sealrs::futures::future::WrappedFuture;
+//! use futures::future;
+//! use futures::{Async, Poll};
+//!
+//! pub struct SealFuture<V: Send  + Clone + 'static, E: Send  + Clone + 'static> {
+//!     fut: WrappedFuture<V, E>
+//! }
+//!
+//! impl <V: Send  + Clone + 'static, E: Send  + Clone + 'static> SealFuture<V, E> {
+//!     pub fn new(fut: WrappedFuture<V, E>) -> SealFuture<V, E> {
+//!         SealFuture {
+//!             fut
+//!         }
+//!     }
+//! }
+//!
+//! impl <V: Send + Clone, E: Send + Clone> future::Future for SealFuture<V, E> {
+//!     type Item = V;
+//!     type Error = E;
+//!
+//!     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+//!         if !self.fut.is_completed() {
+//!             Ok(Async::NotReady)
+//!         } else {
+//!             let inner = self.fut.inner.lock().unwrap();
+//!             let value = inner.value.as_ref().unwrap();
+//!             if value.is_ok() {
+//!                 let ok_result = value.as_ref().ok().unwrap().clone();
+//!                 Ok(Async::Ready(ok_result))
+//!             } else {
+//!                 let err_result = value.as_ref().err().unwrap().clone();
+//!                 Err(err_result)
+//!             }
+//!         }
+//!     }
+//! }
+//! ```
+//!
+//! As example of usage of this converter may be presented json-rpc server based on the 'jsonrpc-http-server' crate.
+//! Here requests handler may work in asynchronous mode, in that it return a rust future with expected result
+//! instead of a result itself. You may interconnect sealrs future with this server with the following way:
+//!
+//! ```
+//! let mut io = IoHandler::new();
+//!
+//! io.add_method("say_hello", move |_: Params| {
+//!     // Create sealrs future
+//!     let fut = Future::asyncp(|| {
+//!         Ok(Value::String(format!("hello", v)))
+//!     }, (&executor).clone());
+//!
+//!     // Convert sealrs future to 'futures' future
+//!     SealFuture::new(fut)
+//! });
+//!
+//! let server = ServerBuilder::new(io)
+//!     .start_http(&"127.0.0.1:3030".parse().unwrap())
+//!     .expect("Unable to start RPC server");
+//!
+//! server.wait();
+//! ```
+//!
+//! Need pay attention that future which will be passed to the converter must be unclosed, which means that the
+//! future may contains any sorts of a combinators (map, recover, flat_map and etc.), but not on_complete, because
+//! he never returns any result.
 
 pub mod future;
 pub mod promise;

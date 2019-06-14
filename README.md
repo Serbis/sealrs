@@ -13,16 +13,14 @@ This library have a very reach documentation with big count of examples and expl
 
 # New in release
 
-* Refactored message passing mechanism
-* Developed ask pattern
-* Expectors in TestProbe now returns intercepted message/s
+* Developed future blocking operations. [DOC](https://docs.rs/sealrs/*/sealrs/futures/index.html#blocking-operations) for info about new releases.
+* Presented converter from the sealrs futures to the rust futures [DOC](https://docs.rs/sealrs/*/sealrs/futures/index.html#futures-conversion) for info about new releases.
 
 See [changelog](https://github.com/Serbis/sealrs/blob/master/changelog.md) for info about new releases.
 
 # In the next release
 
-* 'sealrs -> futures' converter for seamless conversion for library's declarative futures to the Rust's imperative futures
-* 'Future await' mechanics
+* PinnedDispatcher ( actor per thread dispatch )
 
 # Why experimental?
 

@@ -547,7 +547,6 @@ impl Actor for TestProbeActor {
         let mut match_results = self.match_results.lock().unwrap();
 
         let mut counter = 0;
-        println!("Matchers len={}", matchers.len());
         for m in matchers.iter() {
             if match_results[counter] == None {
                 let result = (m)(msg.clone());

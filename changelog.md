@@ -1,6 +1,10 @@
+# 0.8.2
+
+* Fixed bug in fixing of the previous bug (forgot delete debug println)
+
 # 0.8.1
 
-# Fixed bag in TestProbe::expect_no_msg
+* Fixed bag in TestProbe::expect_no_msg
 
 # 0.8.0
 

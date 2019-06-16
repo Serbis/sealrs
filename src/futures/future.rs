@@ -38,7 +38,7 @@ impl <V: Send + Clone, E: Send + Clone> WrappedFuture<V, E> {
     }
 
     /// Callback that will be called upon completion of the future. Creates and returns new future,
-    /// which value is the result of function f applied to the current value if it is has 'Ok' type.
+    /// which value is the result of function f applied to the current value if it is has 'Err' type.
     /// Else function f does not applied, and current value inserted to the next future as is.
     ///
     /// # Examples
@@ -49,6 +49,22 @@ impl <V: Send + Clone, E: Send + Clone> WrappedFuture<V, E> {
         where F: FnMut(&E) -> Result<V, E> + Send + 'static
     {
         self.inner.lock().unwrap().recover(Box::new(f))
+    }
+
+    /// Callback that will be called upon completion of the future. Creates and returns new future,
+    /// which error is the result of function f applied to the current error if it is has 'Err' type.
+    /// Else function f does not applied, and current value inserted to the next future as is.
+    ///
+    /// # Examples
+    ///
+    /// See the module level documentation.
+    ///
+
+    pub fn map_err<X, F>(&mut self, mut f: F) -> WrappedFuture<V, X>
+        where X: Send + Clone + 'static,
+              F: FnMut(&E) -> Result<V, X> + Send + 'static
+    {
+        self.inner.lock().unwrap().map_err(Box::new(f))
     }
 
     /// Callback that will be called upon completion of the future. Creates and returns new future,
@@ -284,6 +300,34 @@ impl <V: Send + Clone, E: Send + Clone> Future<V , E> {
                 let err = v.as_ref().err().unwrap().clone();
                 let result: Result<S, E> = Err(err);
                 p.lock().unwrap().complete(result);
+            }
+        }));
+
+        if self.value.is_some() {
+            if let Some(ref mut v) = self.value {
+                if let Some(ref mut f) = self.next {
+                    f(v)
+                }
+            }
+        }
+
+        fut
+    }
+
+    pub fn map_err<X>(&mut self, mut f: Box<FnMut(&E) -> Result<V, X> + Send>) -> WrappedFuture<V, X>
+        where X: Send + Clone + 'static
+    {
+        let mut p: CompletablePromise<V, X> = CompletablePromise::new();
+        let fut = p.future();
+        self.next = Some(Box::new( move |v: &Result<V, E>| {
+            if v.is_err() {
+                let x = v.as_ref().err().unwrap();
+                let result = f(x);
+                p.complete(result);
+            } else {
+                let ok = v.as_ref().ok().unwrap().clone();
+                let result: Result<V, X> = Ok(ok);
+                p.complete(result);
             }
         }));
 

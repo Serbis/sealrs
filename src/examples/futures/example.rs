@@ -17,12 +17,19 @@ enum MyError {
     }
 }
 
+#[derive(Debug, Fail)]
+enum MyOtherError {
+    #[fail(display = "my other error: {}", text)]
+    ExampleError {
+        text: String,
+    }
+}
 
 pub fn run() {
     //completable_promise();
     //async_promise();
-    //future_combinators();
-    future_await();
+    future_combinators();
+    //future_await();
 
     thread::park();
 }
@@ -123,14 +130,33 @@ fn future_combinators() {
         Ok(100)
     });
 
-
-    // on_complete
-
+    // map_error
 
     let mut fut3: WrappedFuture<u32, TSafe<Fail + Send>> =
         Future::asyncp(|| Ok(500 + 500), executor.clone());
 
-    fut3.on_complete(|v| {
+    fut3.map(|v| {
+        // Oops! Some error occurs in this map
+        let err = tsafe!(MyError::ExampleError { text: String::from("Oops!") });
+        Err(err)
+    }).map_err(|e| {
+        // Converts early occurred error to an error of another type
+        let other_err = tsafe!(MyOtherError::ExampleError { text: String::from("Other Oops!") });
+        Err(other_err)
+    }).recover(|e| {
+        // Handle other error in this place
+
+        // And return 100 as recovery result ( as default value )
+        Ok(100)
+    });
+
+    // on_complete
+
+
+    let mut fut4: WrappedFuture<u32, TSafe<Fail + Send>> =
+        Future::asyncp(|| Ok(500 + 500), executor.clone());
+
+    fut4.on_complete(|v| {
         match v {
             Ok(result) => println!("Result={}", result),
             Err(error) => println!("Error={}", error.lock().unwrap())
@@ -142,7 +168,7 @@ fn future_combinators() {
 
     let vst = 1000;
 
-    let mut fut4: WrappedFuture<u32, TSafe<Fail + Send>> =
+    let mut fut5: WrappedFuture<u32, TSafe<Fail + Send>> =
         Future::asyncp(move || {
             if vst > 500 {
                 Ok(vst + 1000)
@@ -153,7 +179,7 @@ fn future_combinators() {
             }
         }, executor.clone());
 
-    fut4.map(|v| {
+    fut5.map(|v| {
         Ok(format!("{}", *v))
     }).recover(|e| {
         println!("Recovered to default 100 because error occurs -> {}", e.lock().unwrap());

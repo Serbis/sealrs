@@ -9,7 +9,7 @@ extern crate failure;
 #[macro_use] pub mod actors;
 #[macro_use] pub mod testkit;
 pub mod executors;
-//pub mod exps;
+pub mod exps;
 pub mod futures;
 pub mod examples;
 

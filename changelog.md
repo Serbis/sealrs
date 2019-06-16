@@ -1,3 +1,7 @@
+# 0.8.4
+
+* Developed Future::map_err combinator
+
 # 0.8.3
 
 * Fixed bug with threads count selection (library panic at machine with non 4 cpu cores)

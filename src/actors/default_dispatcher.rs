@@ -129,7 +129,7 @@ impl Dispatcher for DefaultDispatcher {
     }
 
     fn obtain_bid(self: &mut Self) -> usize {
-        if self.rounds == 4 - 1 {
+        if self.rounds == self.executor.get_threads_count() - 1 {
             self.rounds = 0;
         } else {
             self.rounds = self.rounds + 1;

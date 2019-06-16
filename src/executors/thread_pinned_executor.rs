@@ -99,6 +99,10 @@ impl ThreadPinnedExecutor {
         self
     }
 
+    pub fn get_threads_count(&self) -> usize {
+        self.threads_count
+    }
+
     /// Set distribution strategy
     pub fn set_distribution_strategy(mut self, strategy: DistributionStrategy) -> Self {
         self.distribution_strategy = strategy;

@@ -1,3 +1,7 @@
+# 0.8.3
+
+* Fixed bug with threads count selection (library panic at machine with non 4 cpu cores)
+
 # 0.8.2
 
 * Fixed bug in fixing of the previous bug (forgot delete debug println)

@@ -1,20 +1,19 @@
--------------------------
 
-* Future await
-* Futures converter
-
--------------------------
 
 * PinnedDispatcher
-* Unbounded Mailbox
-* Basic supervision
-* Basic remoting
+* Stashing
+* Pipe
+* actor_of hook in testkit
+
+* Streams
+
 * Batch messages processing
 * Configs
-* Stashing
-* Become/Unbecome
-* Streams
-* Pipe
 
+* Dispatcher with dynamically changed threads count
+* Dispatcher with dynamically changed throughput value
+* Become/Unbecome
+* BoundedMailbox
 * Extended future combinators
-* actor_of hook in testkit
+* Basic supervision
+* Basic remoting

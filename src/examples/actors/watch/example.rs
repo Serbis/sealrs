@@ -8,11 +8,11 @@ pub fn run() {
     let mut system = LocalActorSystem::new();
 
     // Creates actor which will be watcher be the watcher actor
-    let mut target = system.lock().unwrap()
+    let mut target = system
         .actor_of(target::props(), Some("target"));
 
     // Create actor which will watch the rarget actor
-    let mut watcher = system.lock().unwrap()
+    let mut watcher = system
         .actor_of(watcher::props(target.clone()), None);
 
 
@@ -21,11 +21,11 @@ pub fn run() {
 
     // Stops the target actor. After that, watcher will receive Terminated message and print the message
     // about it
-    system.lock().unwrap().stop(&mut target);
+    system.stop(&mut target);
 
     thread::sleep(Duration::from_secs(1));
 
-    system.lock().unwrap().stop(&mut watcher);
+    system.stop(&mut watcher);
 
     thread::park();
 }

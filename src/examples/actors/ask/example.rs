@@ -9,14 +9,14 @@ pub use std::sync::{Arc, Mutex};
 pub fn run() {
     let mut system = LocalActorSystem::new();
 
-    let mut second = system.lock().unwrap()
+    let mut second = system
         .actor_of(second::props(), Some("second"));
 
-    let mut first = system.lock().unwrap()
+    let mut first = system
         .actor_of(first::props(&second), Some("first"));
 
     // To GetFlatResponse actor responds with his own message
-    first.ask(&mut (*system.lock().unwrap()), msg!(first::commands::GetFlatResponse {}))
+    first.ask(&mut (system), msg!(first::commands::GetFlatResponse {}))
         .on_complete(|v| {
            if v.is_ok() {
                println!("Got response");
@@ -30,7 +30,7 @@ pub fn run() {
     // the second actor.
     let msg = msg!(first::commands::GetCascadeResponse { data: 100 });
 
-    first.ask(&mut (*system.lock().unwrap()), msg)
+    first.ask(&mut (system), msg)
         .on_complete(|v| {
             if v.is_ok() {
                 let resp = v.as_ref().ok().unwrap();

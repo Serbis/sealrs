@@ -26,13 +26,13 @@ impl Actor for Watcher {
     fn pre_start(&mut self, ctx: ActorContext) {
 
         // Registers target actor as watched
-        ctx.system.lock().unwrap().watch(&ctx.self_, &self.target);
+        ctx.system().watch(&ctx.self_, &self.target);
     }
 
     fn post_stop(&mut self, ctx: ActorContext) {
 
         // Unregisters target actor as watched
-        ctx.system.lock().unwrap().unwatch(&ctx.self_, &self.target);
+        ctx.system().unwatch(&ctx.self_, &self.target);
     }
 
     fn receive(self: &mut Self, msg: Message, ctx: ActorContext) -> bool {

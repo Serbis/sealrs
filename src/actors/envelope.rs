@@ -32,3 +32,9 @@ impl Envelope {
         }
     }
 }
+
+//impl Drop for Envelope {
+//    fn drop(&mut self) {
+//        println!("Envelope dropped")
+//    }
+//}

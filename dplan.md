@@ -1,6 +1,5 @@
 
 
-* PinnedDispatcher
 * Stashing
 * Pipe
 * actor_of hook in testkit

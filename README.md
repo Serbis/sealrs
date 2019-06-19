@@ -13,8 +13,11 @@ This library have a very reach documentation with big count of examples and expl
 
 # New in release
 
-* Developed future blocking operations. [DOC](https://docs.rs/sealrs/*/sealrs/futures/index.html#blocking-operations).
-* Presented converter from the sealrs futures to the rust futures [DOC](https://docs.rs/sealrs/*/sealrs/futures/index.html#futures-conversion).
+* Dispatchers adding mechanism
+* Dispatchers swapping mechanism
+* Dispatchers wrapper for you may use dispatcher as linear executor
+* Changed actor system constructor. Now he returns flat type instead TSafe
+* Developed PinnedDispatcher
 
 See [changelog](https://github.com/Serbis/sealrs/blob/master/changelog.md) for info about new releases.
 
@@ -22,6 +25,6 @@ See [changelog](https://github.com/Serbis/sealrs/blob/master/changelog.md) for i
 
 * PinnedDispatcher ( actor per thread dispatch )
 
-# Why experimental?
+# Developing stage info
 
-Comments about why the library in the experimental state. This library while does not used in my any real project. Reason for this in that I need develop basic fetures of actors / futures . Without this, real usage of this library is very difficult. This situation lead to fact, that for now, library probably contain a very big count of bags. And I will don't see it, until I start to use this library for real development. Accordingly this, while the library will stay in experimental state, I does not may give any guarantee, that separate components of the library work correctly.
+Starting with release 0.9.0 library is translated from experimental to actively-developed stage. This change due to that main functionality of library is developed and fixed most of critical bugs. Fow now this library is used for developing real microservices in my own project. Despide that fact, public api is not fully stable, and may be partially changed in future releases.

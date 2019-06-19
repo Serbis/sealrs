@@ -6,7 +6,7 @@ use std::thread;
 pub fn run() {
     let mut system = LocalActorSystem::new();
 
-    let mut printer = system.lock().unwrap()
+    let mut printer = system
         .actor_of(basic_actor::props(), Some("printer"));
 
     let msg = msg!(basic_actor::Print { text: String::from("Hello world!") });
@@ -14,5 +14,5 @@ pub fn run() {
 
     thread::sleep_ms(1000);
 
-    system.lock().unwrap().terminate();
+    system.terminate();
 }

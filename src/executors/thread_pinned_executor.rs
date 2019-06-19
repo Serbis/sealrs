@@ -140,22 +140,14 @@ impl ThreadPinnedExecutor {
                         cvar.wait_timeout(mutex.lock().unwrap(), Duration::from_millis(1000));
                     }
                 }
+
+                let mut q = queue.lock().unwrap();
+                q.clear();
             });
         }
 
         self
 
-    }
-
-    /// Stops executor threads
-    pub fn stop(&self) {
-        for stop in self.stops.iter() {
-            *stop.lock().unwrap() = true;
-        }
-
-        for cvar in self.locks.iter() {
-            cvar.notify_all();
-        }
     }
 
     /// Realizes implicit thread id selecting based on specified execution strategy
@@ -217,5 +209,16 @@ impl Executor for ThreadPinnedExecutor {
         self.queues[thread_id].lock().unwrap().push_back(f);
         self.locks[thread_id].notify_one();
 
+    }
+
+    /// Stops executor threads
+    fn stop(&mut self) {
+        for stop in self.stops.iter() {
+            *stop.lock().unwrap() = true;
+        }
+
+        for cvar in self.locks.iter() {
+            cvar.notify_all();
+        }
     }
 }

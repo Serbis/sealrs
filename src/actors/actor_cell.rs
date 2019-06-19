@@ -158,6 +158,12 @@ impl ActorCell {
     }
 }
 
+//impl Drop for ActorCell {
+//    fn drop(&mut self) {
+//        println!("ActorCell dropped")
+//    }
+//}
+//
 
 
 // Attentions!!! This object does't do be cloned. Cloned must by on the boxed (TSave) value of the

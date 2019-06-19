@@ -224,15 +224,10 @@
 //! way:
 //!
 //! ```
-//!  let (mut target, mut probe, mut stdout_writer, mut file_writer) = {
-//!     let mut system = system.lock().unwrap();
-//!     let mut probe = system.create_probe(Some("probe"));
-//!     let mut stdout_writer = system.create_probe(Some("stdout_writer"));
-//!     let mut file_writer = system.create_probe(Some("file_writer"));
-//!     let mut target = system.actor_of(logger::props(file_writer.aref(), stdout_writer.aref()), Some("logger"));
-//!
-//!     (target, probe, stdout_writer, file_writer)
-//!  };
+//! let mut probe = system.create_probe(Some("probe"));
+//! let mut stdout_writer = system.create_probe(Some("stdout_writer"));
+//! let mut file_writer = system.create_probe(Some("file_writer"));
+//! let mut target = system.actor_of(logger::props(file_writer.aref(), stdout_writer.aref()), Some("logger"));
 //!
 //! probe.send(target.clone(), msg!(logger::Log { text: String::from("_"), target: logger::LogTarget::File }));
 //! file_writer.expect_msg(type_matcher!(file_writer::Write));

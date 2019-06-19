@@ -1,3 +1,11 @@
+# 0.9.0
+
+* Dispatchers adding mechanism
+* Dispatchers swapping mechanism
+* Dispatchers wrapper for you may use dispatcher as linear executor
+* Developed PinnedDispatcher
+* Changed actor system constructor. Now he returns flat type instead TSafe
+
 # 0.8.4
 
 * Developed Future::map_err combinator

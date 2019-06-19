@@ -2,7 +2,9 @@ use crate::actors::actor_ref_factory::ActorRefFactory;
 use crate::actors::abstract_actor_ref::ActorRef;
 use crate::actors::watcher::WatchingEvents;
 use crate::actors::scheduler::Scheduler;
+use crate::actors::dispatcher::Dispatcher;
 use crate::common::tsafe::TSafe;
+use crate::executors::executor::Executor;
 
 //TODO docs
 pub trait AbstractActorSystem: ActorRefFactory {
@@ -15,6 +17,16 @@ pub trait AbstractActorSystem: ActorRefFactory {
 
     /// Stops the actor system
     fn terminate(&mut self);
+
+    /// Adds new dispatcher to the system. For now supporter only default dispatcher replacing
+    fn add_dispatcher(&mut self, name: &str, dispatcher: TSafe<Dispatcher + Send>);
+
+    /// Returns dispatcher by name
+    fn get_dispatcher(&self, name: &str) -> TSafe<Dispatcher + Send>;
+
+    /// Returns dispatcher by name as executor
+    fn get_executor(&self, name: &str) -> TSafe<Executor + Send>;
+
 }
 
 //TODO остановка акторной системы

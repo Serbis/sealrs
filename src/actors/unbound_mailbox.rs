@@ -54,7 +54,9 @@ impl Mailbox for UnboundMailbox {
 
         while true {
             if self.queue.len() > 0 {
-                dead_letters.tell(msg!(self.queue.pop_front().unwrap()), Some(&sender)); //(self.queue.pop_front().unwrap()
+                let envelope = self.queue.pop_front().unwrap();
+                let message = envelope.message.clone();
+                dead_letters.tell(msg!(message), Some(&sender)); //(self.queue.pop_front().unwrap()
             } else {
                 break;
             }

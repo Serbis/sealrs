@@ -30,7 +30,7 @@ impl ActorContext {
         }
     }
 
-    pub fn system(&mut self) -> MutexGuard<AbstractActorSystem + Send + 'static> {
+    pub fn system(&self) -> MutexGuard<AbstractActorSystem + Send + 'static> {
         self.system.lock().unwrap()
     }
 }

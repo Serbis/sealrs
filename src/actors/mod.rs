@@ -10,9 +10,11 @@
 //! 7. [Actor communications](#actor-communications)
 //! 8. [ActorRef sharing](#actorref-sharing)
 //! 9. [More about DeadLetters](#more-about-deadletters)
-//! 10. [Timers](#timers)
-//! 11. [Watching](#watching)
-//! 12. [Ask](#ask)
+//! 10. [More about dispatchers](#more-about-dispatchers)
+//! 11. [Timers](#timers)
+//! 12. [Watching](#watching)
+//! 13. [Ask](#ask)
+//!
 //!
 //! # Introduction
 //! This runtime is realize the classical actor paradigm actively used in the actor based languages,
@@ -65,10 +67,13 @@
 //! context. Dispatcher is an interface, and him concrete behavior base on it's implementation. In
 //! the library exists few standard realization of this interface:
 //!
-//!     * DefaultDispatcher - threads pinned dispatcher, in which message of each concrete actor,
-//! processed in only one OS thread. This feature allows actors has internal state without any
-//! protections from race condition. This dispatcher is used by default at the time of actor
-//! creation, if other dispatcher type, does not specified explicitly.
+//!     * DefaultDispatcher - dispatcher based on on ThradPinnedDispatcher with thread pinning
+//! stratagy. This executor contants set of threads, which distributes between actors. He is used
+//! for main purpose and non blocking tasks, with medium loading for the system.
+//!     * PinnedDispatcher - dispatcher which contain only one thread and service work of only one
+//! actor. Stops at the same time with serviced actor. Used for situations when actor needs to
+//! perform some heavy synchronous tasks such as working with a files or using a network. Blocking
+//! of message processing in this dispatcher have nothing impact to other actors in the system.
 //!
 //!  Runtime consists five object:
 //! * Actor - user defined structure implemented with the Actor trait. This object contains
@@ -156,7 +161,7 @@
 //! ```
 //! let mut system = LocalActorSystem::new();
 //!
-//! let mut printer = system.lock().unwrap()
+//! let mut printer = system
 //!     .actor_of(basic_actor::props(), Some("printer"));
 //!
 //! let msg = msg!(basic_actor::Print { text: String::from("Hello world!") });
@@ -164,17 +169,8 @@
 //! ```
 //!
 //! At first line, we create new actor system. Internally, this operation creates default dispatcher
-//! and DeadLetter synthetic actor. Should pay attention on the following fact. ActorSystem have type
-//! TSafe<LocalActorSystem>. TSafe is macro which expands to Arc<Mutex\<T\>>. Last is the standard rust
-//! thread safe shared pointer. This fact means for as, that we will mast lock this pointer before
-//! use it. Omissions in the logic of the this pointers unlocking, when you use him outside of the
-//! actor system, will guaranteed lead to some sort of deadlocks. For this reason, you must pay
-//! extreme attention for lock management of this object if you plan to use this pointer in the
-//! other places, rather than actors. In normal conditions, his is used only at the actor system
-//! deploying stage. All other interactions with system will be performs in the actors, and does not
-//! may cause deadlock.
-//!
-//! At next line, we create the early defined actor. actor_of functions is receive Pops object as
+//! and DeadLetter synthetic actor. At next line, we create the early defined actor. actor_of
+//! functions is receive Pops object as
 //! first argument, and actor name as second. Actor name is optional, and it may be set to None.
 //! In this case, name will be generated automatically. Props object is indicates the system, which
 //! actor to create, and with which params. We will come across this structure more than once as
@@ -263,7 +259,7 @@
 //! process of some message, it will be processed and after that actor will be stopped.
 //!
 //!     ```
-//!     system.lock().unwrap().stop(bench);
+//!     system.stop(bench);
 //!     ```
 //!
 //! # Actor communications
@@ -348,7 +344,7 @@
 //! let mut system = LocalActorSystem::new();
 //!
 //! let mut logger =  {
-//!     let mut system = system.lock().unwrap();
+//!     let mut system = system;
 //!     let file_writer = system.actor_of(file_writer::props("/tmp/log"), Some("file_writer"));
 //!     let stdout_writer = system.actor_of(stdout_writer::props(), Some("stdout_writer"));
 //!     system.actor_of(logger::props(file_writer, stdout_writer), Some("logger"))
@@ -371,7 +367,7 @@
 //!
 //! ```
 //!let (mut logger, mut file_writer, mut stdout_writer) = {
-//!     let mut system = system.lock().unwrap();
+//!     let mut system = system;
 //!     let file_writer = system.actor_of(file_writer::props("/tmp/log"), Some("file_writer"));
 //!     let stdout_writer = system.actor_of(stdout_writer::props(), Some("stdout_writer"));
 //!     let logger = system.actor_of(logger::props(file_writer.clone(), stdout_writer.clone()), Some("logger"));
@@ -405,6 +401,54 @@
 //!
 //! This is a regular actor reference, but all messages passed through it, will be dropped directly
 //! to the DeadLetter.
+//!
+//! # More about dispatchers
+//!
+//! Messages dispatch is more complex topic for describe him in one paragraph. Next text
+//! completes this omission.
+//!
+//! ## Specifying the dispatcher via props
+//!
+//! You may specify dispatcher for actor by presents her name to the Props object. By default,
+//! exists two dispatchers type - default and pinned. Default used alwasy as default if you don't
+//! set another type explicitly. You may specify other dispatcher by calling with_dispatcher
+//! function.
+//!
+//! ```
+//! let some_actor = Props::new(tsafe!(SomeActor::new()))
+//!     .with_dispatcher("pinned");
+//! ```
+//!
+//! ## Adding new dispatchers
+//!
+//! You can add external dispatchers to the actor system through add_ dispatcher method. This method
+//! receive name of created dispatcher and his object. Should notice that if dispatcher with the
+//! same name exists, it will be replaced. Old dispatcher will be immediately stoppd and dropped.
+//! After adding dispatcher, he may be used with Props object through with_dispatcher method.
+//! Replacing feature, permits you to replace default dispatcher of the actor system.
+//!
+//! ```
+//!
+//! // Replace default dispatcher with custom count of threads
+//! system.add_dispatcher("default", tsafe!(DefaultDispatcher::new(16)));
+//!
+//! ```
+//!
+//! ## Implementing custom dispatcher
+//! You can implement your own dispatcher type with some specific functionality. This is not magic
+//! action, because actor system dispatcher is a simple struct which implements the two traits -
+//! Dispatcher and Executor. You may implement this struct and pass it with add_dispatcher method to
+//! the actor system. This action is contain too many code for describe him in this doc. You may see
+//! to the example of custom dispatcher implementing in the 'example/actors/custom_dispatcher'.
+//!
+//! ## Using dispatchers with futures
+//!
+//! Fact that dispatcher implements Executor trait, allows to you use him as execution context of
+//! AsyncPromise. You can do this in such way:
+//!
+//! ```
+//!
+//! ```
 //!
 //! # Timers
 //!
@@ -532,7 +576,7 @@
 //! of the dispatcher, that will very fast leads to dead lock of the entire system.
 //!
 //! ```
-//! let req = actor.ask(&mut (*system.lock().unwrap()), msg!(SomeRequest {}));
+//! let req = actor.ask(&mut (system), msg!(SomeRequest {}));
 //! let result = req.result(Duration::from_secs(5));
 //!
 //! // Do some actions with received message or handle error
@@ -545,7 +589,7 @@
 //! in this way:
 //!
 //! ```
-//! actor.ask(&mut (*system.lock().unwrap()), msg!(SomeRequest {}))
+//! actor.ask(&mut (system), msg!(SomeRequest {}))
 //!     .map(|v| {
 //!         // Do some with received message
 //!     })
@@ -608,6 +652,7 @@
 pub mod prelude;
 pub mod dispatcher;
 pub mod default_dispatcher;
+pub mod pinned_dispatcher;
 pub mod actor_cell;
 pub mod envelope;
 pub mod mailbox;
@@ -627,3 +672,4 @@ pub mod scheduler;
 pub mod timers;
 pub mod watcher;
 pub mod ask_actor;
+pub mod wrapped_dispatcher;

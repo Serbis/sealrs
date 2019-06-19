@@ -7,6 +7,8 @@ use crate::actors::actor_path::ActorPath;
 use crate::actors::actor_cell::ActorCell;
 use crate::actors::actor::PoisonPill;
 use crate::actors::default_dispatcher::DefaultDispatcher;
+use crate::actors::pinned_dispatcher::PinnedDispatcher;
+use crate::actors::dispatcher::Dispatcher;
 use crate::actors::dead_letters::DeadLetters;
 use crate::actors::synthetic_actor::SyntheticActor;
 use crate::actors::unbound_mailbox::UnboundMailbox;
@@ -18,6 +20,9 @@ use crate::actors::watcher::WatchingEvents;
 use crate::actors::watcher::Watcher;
 use crate::actors::scheduler::Scheduler;
 use crate::actors::message::Message;
+use crate::actors::wrapped_dispatcher::WrappedDispatcher;
+use crate::executors::executor::Executor;
+use std::collections::hash_map::HashMap;
 use std::sync::{Arc, Mutex};
 
 
@@ -27,7 +32,7 @@ pub struct LocalActorSystem {
     nids: usize,
 
     /// Default dispatcher. Used if other dispatcher does not explicitly specified.
-    pub dispatcher: TSafe<DefaultDispatcher>,
+    dispatchers: TSafe<HashMap<String, TSafe<Dispatcher + Send>>>,
 
     /// Dead letter actor reference. Sending message through this reference has is very low cost,
     /// because message after drop to the mailbox, is simply destroyed without hes subsequent
@@ -43,27 +48,31 @@ pub struct LocalActorSystem {
 
 impl LocalActorSystem {
     /// Create new actor system protected by TSafe guard.
-    pub fn new() -> TSafe<LocalActorSystem> {
+    pub fn new() -> LocalActorSystem {
         let cpu_count = num_cpus::get();
-        let dispatcher = tsafe!(DefaultDispatcher::new(cpu_count as u32));
-        let system = LocalActorSystem {
+        let def_dispatch = tsafe!(DefaultDispatcher::new(cpu_count as u32));
+        let mut dispatchers: HashMap<String, TSafe<Dispatcher + Send>> = HashMap::new();
+        dispatchers.insert(String::from("default"), def_dispatch.clone());
+        let mut system = LocalActorSystem {
             nids: 0,
-            dispatcher: dispatcher.clone(),
+            dispatchers: tsafe!(dispatchers),
             dead_letters: None,
             scheduler: tsafe!(Scheduler::new()),
             watcher: tsafe!(Watcher::new())
         };
 
-        let system = tsafe!(system);
+        let system_safe = tsafe!(system.clone());
 
         let dlp = tsafe!(ActorPath::new("deadLetters"));
         let dlm = DeadLetters::new();
-        let dlc = ActorCell::new(system.clone(), dlp.clone(),tsafe!(SyntheticActor {}), 0, dispatcher.clone(), tsafe!(dlm));
+        let dlc = ActorCell::new(system_safe.clone(), dlp.clone(),tsafe!(SyntheticActor {}), 0, def_dispatch.clone(), tsafe!(dlm));
 
         let boxed_dlc = tsafe!(dlc);
 
 
-        system.lock().unwrap().dead_letters = Some(Box::new(LocalActorRef::new(boxed_dlc.clone(), dlp)));
+        //system.lock().unwrap().dead_letters = Some(Box::new(LocalActorRef::new(boxed_dlc.clone(), dlp)));
+        system_safe.lock().unwrap().dead_letters = Some(Box::new(LocalActorRef::new(boxed_dlc.clone(), dlp.clone())));
+        system.dead_letters = Some(Box::new(LocalActorRef::new(boxed_dlc.clone(), dlp.clone())));
         boxed_dlc.lock().unwrap().start(boxed_dlc.clone());
 
         system
@@ -99,12 +108,34 @@ impl ActorRefFactory for LocalActorSystem {
 
         let path = tsafe!(ActorPath::new(&aname));
 
+        let dispatcher: TSafe<Dispatcher + Send> = {
+            match &(props.dispatcher)[..] {
+                "default" => {
+                    let d = self.dispatchers.lock().unwrap();
+                    let d = d.get(&String::from("default"));
+                    let d = d.as_ref().unwrap();
+                    (*d).clone()
+                },
+                "pinned" => tsafe!(PinnedDispatcher::new()),
+                other => {
+                    let dispatchers = self.dispatchers.lock().unwrap();
+                    let dispatcher = dispatchers.get(&String::from(other));
+
+                    match dispatcher {
+                        Some(d) => d.clone(),
+                        None => panic!("Dispatcher with name '{}' does not registered", other)
+                    }
+                }
+            }
+        };
+
+
         let cell = ActorCell::new(
             tsafe!(self.clone()),
             path.clone(),
             props.actor,
             0,
-            self.dispatcher.clone(),
+            dispatcher,
             mailbox
         );
         let boxed_cell = tsafe!(cell);
@@ -132,7 +163,6 @@ impl ActorRefFactory for LocalActorSystem {
         let x = aref.cell();
         let mut cell = x.lock().unwrap();
         cell.suspend();
-        // +++ cell.actor.timers().cancelAll();
         cell.mailbox.lock().unwrap().clean_up(aref_cpy0, self.dead_letters());
         cell.force_send(aref.cell().clone(), msg!(PoisonPill {}), None, aref_cpy1);
     }
@@ -172,8 +202,56 @@ impl AbstractActorSystem for LocalActorSystem {
 
     /// Stops the actor system
     fn terminate(&mut self) {
-        self.dispatcher.lock().unwrap().stop();
+        let d_list = self.dispatchers.lock().unwrap();
+        for (_, d) in d_list.iter() {
+            d.lock().unwrap().stop();
+        }
         self.dead_letters = None;
+    }
+
+    /// Adds new dispatcher to the system. For now supporter only default dispatcher replacing
+    fn add_dispatcher(&mut self, name: &str, dispatcher: TSafe<Dispatcher + Send>) {
+        match name {
+            "default" => {
+                self.dispatchers.lock().unwrap().get("default").unwrap().lock().unwrap().stop();
+
+                let dlp = tsafe!(ActorPath::new("deadLetters"));
+                let dlm = DeadLetters::new();
+                let dlc = ActorCell::new(tsafe!(self.clone()), dlp.clone(),tsafe!(SyntheticActor {}), 0, dispatcher.clone(), tsafe!(dlm));
+
+                let boxed_dlc = tsafe!(dlc);
+
+
+                self.dead_letters = Some(Box::new(LocalActorRef::new(boxed_dlc.clone(), dlp)));
+                self.dispatchers.lock().unwrap().insert(String::from(name), dispatcher);
+            },
+            _ => {
+                let name_str = String::from(name);
+                let mut dispatchers = self.dispatchers.lock().unwrap();
+
+                if !dispatchers.contains_key(&name_str) {
+                    dispatchers.insert(name_str, dispatcher);
+                } else {
+                    panic!("Try to add dispatcher with existed name '{}'", name_str)
+                }
+            }
+        }
+    }
+
+    /// Returns dispatcher by name
+    fn get_dispatcher(&self, name: &str) -> TSafe<Dispatcher + Send> {
+        let d = self.dispatchers.lock().unwrap();
+        let d = d.get(&String::from(name));
+        if d.is_some() {
+            (*d.as_ref().unwrap()).clone()
+        } else {
+            panic!("Attempt to get not registered dispatcher '{}'", name)
+        }
+    }
+
+    /// Returns dispatcher by name as executor
+    fn get_executor(&self, name: &str) -> TSafe<Executor + Send> {
+        tsafe!(WrappedDispatcher::new(self.get_dispatcher(name)))
     }
 }
 
@@ -181,12 +259,14 @@ impl Clone for LocalActorSystem {
     fn clone(&self) -> Self {
 
         let dead_letter: Option<ActorRef> = match &self.dead_letters {
-            Some(v) => Some((*v).clone()),
-            None => None
+            Some(v) =>
+                Some((*v).clone()),
+            None =>
+                None
         };
         LocalActorSystem {
             nids: self.nids,
-            dispatcher: self.dispatcher.clone(),
+            dispatchers: self.dispatchers.clone(),
             dead_letters: dead_letter, //self.dead_letters.clone()
             scheduler: self.scheduler.clone(),
             watcher: self.watcher.clone()

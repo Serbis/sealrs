@@ -35,7 +35,8 @@ impl Mailbox for DeadLetters {
         let mut actor_name = "outside".to_string();
 
         if envelope.sender.is_some() {
-            let sender =  &mut envelope.sender.unwrap();
+            let aref = envelope.sender.as_ref().unwrap();
+            let sender =  &mut envelope.sender.as_ref().unwrap();
             let sender_path = {
                 sender.path().name.clone()
             };

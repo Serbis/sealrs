@@ -128,13 +128,8 @@ mod tests {
 
         test_case!("MsgOk - respond with MsgResponse");
         {
-            let (mut target, mut probe) = {
-                let mut system = system.lock().unwrap();
-                let mut target = system.actor_of(self::props(None), None);
-                let mut probe = system.create_probe(Some("probe"));
-
-                (target, probe)
-            };
+            let mut target = system.actor_of(self::props(None), None);
+            let mut probe = system.create_probe(Some("probe"));
 
             probe.send(&mut target, msg!( commands::MsgOk { data: 99 } ));
             let msg = probe.expect_msg(type_matcher!(responses::MsgResponse));
@@ -182,13 +177,8 @@ mod tests {
 
         test_case!("MsgOk2 - respond with any of <MsgResponse, MsgResponse2, MsgResponse3>");
         {
-            let (mut target, mut probe) = {
-                let mut system = system.lock().unwrap();
-                let mut target = system.actor_of(self::props(None), None);
-                let mut probe = system.create_probe(Some("probe"));
-
-                (target, probe)
-            };
+            let mut target = system.actor_of(self::props(None), None);
+            let mut probe = system.create_probe(Some("probe"));
 
             probe.send(&mut target, msg!( commands::MsgOk2 { data: 99 } ));
             probe.expect_msg_any_of(
@@ -244,13 +234,8 @@ mod tests {
 
         test_case!("MsgOk4 - respond with all of <MsgResponse, MsgResponse2, MsgResponse3>");
         {
-            let (mut target, mut probe) = {
-                let mut system = system.lock().unwrap();
-                let mut target = system.actor_of(self::props(None), None);
-                let mut probe = system.create_probe(Some("probe"));
-
-                (target, probe)
-            };
+            let mut target = system.actor_of(self::props(None), None);
+            let mut probe = system.create_probe(Some("probe"));
 
             probe.send(&mut target, msg!( commands::MsgOk4 { data: 99 } ));
             probe.expect_msg_all_of(
@@ -314,13 +299,8 @@ mod tests {
 
         test_case!("MsgNoResponse - expect no message");
         {
-            let (mut target, mut probe) = {
-                let mut system = system.lock().unwrap();
-                let mut target = system.actor_of(self::props(None), None);
-                let mut probe = system.create_probe(Some("probe"));
-
-                (target, probe)
-            };
+            let mut target = system.actor_of(self::props(None), None);
+            let mut probe = system.create_probe(Some("probe"));
 
             probe.send(&mut target, msg!( commands::MsgNoResponse { data: 99 } ));
             probe.expect_no_msg(Duration::from_secs(1));
@@ -350,13 +330,8 @@ mod tests {
 
         test_case!("Process complex logic");
         {
-            let (mut target, mut probe) = {
-                let mut system = system.lock().unwrap();
-                let mut target = system.actor_of(self::props(None), None);
-                let mut probe = system.create_probe(Some("probe"));
-
-                (target, probe)
-            };
+            let mut target = system.actor_of(self::props(None), None);
+            let mut probe = system.create_probe(Some("probe"));
 
             probe.send(&mut target, msg!( commands::MsgComplex0 {  } ));
             probe.expect_msg(pat_matcher!(responses::MsgResponse => responses::MsgResponse { data: 99 }));
@@ -373,16 +348,11 @@ mod tests {
 
         test_case!("Send message to the referal actor");
         {
-            let (mut target, mut probe) = {
-                let mut system = system.lock().unwrap();
-                let mut probe = system.create_probe(Some("probe"));
+            let mut probe = system.create_probe(Some("probe"));
 
-                // See to this code - we extract internal testprobe actor, and pass it as target
-                // actor dependency
-                let mut target = system.actor_of(self::props(Some(probe.aref())), None);
-
-                (target, probe)
-            };
+            // See to this code - we extract internal testprobe actor, and pass it as target
+            // actor dependency
+            let mut target = system.actor_of(self::props(Some(probe.aref())), None);
 
             probe.send(&mut target, msg!(commands::ToRef {}));
             probe.expect_msg(type_matcher!(logger::Log));
@@ -393,16 +363,11 @@ mod tests {
 
         test_case!("Get internal state");
         {
-            let (mut target, mut probe) = {
-                let mut system = system.lock().unwrap();
-                let mut probe = system.create_probe(Some("probe"));
+            let mut probe = system.create_probe(Some("probe"));
 
-                // See to this code - we extract internal testprobe actor, and pass it as target
-                // actor dependency
-                let mut target = system.actor_of(self::props(Some(probe.aref())), None);
-
-                (target, probe)
-            };
+            // See to this code - we extract internal testprobe actor, and pass it as target
+            // actor dependency
+            let mut target = system.actor_of(self::props(Some(probe.aref())), None);
 
             probe.send(&mut target, msg!(commands::MutState { data: 599 }));
 
@@ -419,16 +384,11 @@ mod tests {
 
         test_case!("Must terminate himself");
         {
-            let (mut target, mut probe) = {
-                let mut system = system.lock().unwrap();
-                let mut probe = system.create_probe(Some("probe"));
+            let mut probe = system.create_probe(Some("probe"));
 
-                // See to this code - we extract internal testprobe actor, and pass it as target
-                // actor dependency
-                let mut target = system.actor_of(self::props(Some(probe.aref())), None);
-
-                (target, probe)
-            };
+            // See to this code - we extract internal testprobe actor, and pass it as target
+            // actor dependency
+            let mut target = system.actor_of(self::props(Some(probe.aref())), None);
 
             probe.watch(&target);
             probe.send(&mut target, msg!(commands::Bomb {  }));

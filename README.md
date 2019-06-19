@@ -27,4 +27,4 @@ See [changelog](https://github.com/Serbis/sealrs/blob/master/changelog.md) for i
 
 # Developing stage info
 
-Starting with release 0.9.0 library is translated from experimental to actively-developed stage. This change due to that main functionality of library is developed and fixed most of critical bugs. Fow now this library is used for developing real microservices in my own project. Despide that fact, public api is not fully stable, and may be partially changed in future releases.
+Starting with release 0.9.0 the library is translated from experimental to actively-developed stage. This change due to that main functionality of the library is developed and fixed most of critical bugs. Fow now this library is used for developing real microservices in my own project. Despite that fact, public api is not fully stable, and may be partially changed in future releases.

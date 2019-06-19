@@ -1,3 +1,8 @@
+# 0.9.1
+
+* Added pre completed futures
+* Changes in futures converter
+
 # 0.9.0
 
 * Dispatchers adding mechanism

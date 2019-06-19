@@ -14,6 +14,7 @@
 //! 6. [Requirements to V and E](#requirements-to-v-and-e)
 //! 7. [Blocking operations](#blocking-operations)
 //! 8. [Futures conversion](#futures-conversion)
+//! 9. [Pre completed futures](#pre-completed-futures)
 //!
 //! # Introduction
 //!
@@ -119,7 +120,7 @@
 //!
 //! ## map
 //!
-//! Transforms result of the current future to result of some another type. Never calls if previous
+//! Transforms Ok result of the current future to Ok result of some another type. Never calls if previous
 //! result was error.
 //!
 //! ```
@@ -129,6 +130,17 @@
 //! ```
 //!
 //! In this example, value of u32 type will be transformed to the result of String type.
+//!
+//! ## map_err
+//!
+//! Transforms Err result of the current future to Err result of some another type. Never calls if previous
+//! result was Ok.
+//!
+//! ```
+//! fut.map_err(|e| {
+//!       Err(OtherErr::new())
+//! })
+//! ```
 //!
 //! ## flat_map
 //!
@@ -313,6 +325,7 @@
 //! use sealrs::futures::future::WrappedFuture;
 //! use futures::future;
 //! use futures::{Async, Poll};
+//! use std::time::Duration;
 //!
 //! pub struct SealFuture<V: Send  + Clone + 'static, E: Send  + Clone + 'static> {
 //!     fut: WrappedFuture<V, E>
@@ -331,18 +344,16 @@
 //!     type Error = E;
 //!
 //!     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-//!         if !self.fut.is_completed() {
-//!             Ok(Async::NotReady)
+//!         self.fut.ready(Duration::from_secs(u64::max_value()));
+//!
+//!         let inner = self.fut.inner.lock().unwrap();
+//!         let value = inner.value.as_ref().unwrap();
+//!         if value.is_ok() {
+//!             let ok_result = value.as_ref().ok().unwrap().clone();
+//!             Ok(Async::Ready(ok_result))
 //!         } else {
-//!             let inner = self.fut.inner.lock().unwrap();
-//!             let value = inner.value.as_ref().unwrap();
-//!             if value.is_ok() {
-//!                 let ok_result = value.as_ref().ok().unwrap().clone();
-//!                 Ok(Async::Ready(ok_result))
-//!             } else {
-//!                 let err_result = value.as_ref().err().unwrap().clone();
-//!                 Err(err_result)
-//!             }
+//!             let err_result = value.as_ref().err().unwrap().clone();
+//!             Err(err_result)
 //!         }
 //!     }
 //! }
@@ -375,6 +386,17 @@
 //! Need pay attention that future which will be passed to the converter must be unclosed, which means that the
 //! future may contains any sorts of a combinators (map, recover, flat_map and etc.), but not on_complete, because
 //! he never returns any result.
+//!
+//! # Pre completed futures
+//!
+//! You can creates already completed futures. Such needs may occurs in situation when you needs
+//! return some result as future, but you already have expects result. You can create pre completed
+//! futures in this way:
+//!
+//! ```
+//! let f1: WrappedFuture<u32, Error> = Future::ok(10);
+//! let f2: WrappedFuture<u32, Error> = Future::err(Error::from("xxx"));
+//! ```
 
 pub mod future;
 pub mod promise;

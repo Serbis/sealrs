@@ -181,6 +181,26 @@ impl <V: Send + Clone, E: Send + Clone> Future<V , E> {
         p.future()
     }
 
+    /// Creates already completed future with Ok result
+    pub fn ok(value: V) -> WrappedFuture<V, E> {
+        let mut fut: Future<V, E> = Future::new();
+        fut.complete(Ok(value));
+
+        WrappedFuture {
+            inner: tsafe!(fut)
+        }
+    }
+
+    /// Creates already completed future with Err result
+    pub fn err(err: E) -> WrappedFuture<V, E> {
+        let mut fut: Future<V, E> = Future::new();
+        fut.complete(Err(err));
+
+        WrappedFuture {
+            inner: tsafe!(fut)
+        }
+    }
+
 
     pub fn new() -> Future<V, E> {
         Future {

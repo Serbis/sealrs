@@ -11,7 +11,7 @@ use super::async_promise::AsyncPromise;
 use crate::common::tsafe::TSafe;
 use crate::executors::executor::Executor;
 use std::sync::mpsc;
-use std::sync::{Arc, Mutex, Condvar};
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 /// Wrapper for future. This object encapsulate original future and allows to user set of
@@ -45,7 +45,7 @@ impl <V: Send + Clone, E: Send + Clone> WrappedFuture<V, E> {
     ///
     /// See the module level documentation.
     ///
-    pub fn recover<F>(&mut self, mut f: F) -> WrappedFuture<V, E>
+    pub fn recover<F>(&mut self, f: F) -> WrappedFuture<V, E>
         where F: FnMut(&E) -> Result<V, E> + Send + 'static
     {
         self.inner.lock().unwrap().recover(Box::new(f))
@@ -60,7 +60,7 @@ impl <V: Send + Clone, E: Send + Clone> WrappedFuture<V, E> {
     /// See the module level documentation.
     ///
 
-    pub fn map_err<X, F>(&mut self, mut f: F) -> WrappedFuture<V, X>
+    pub fn map_err<X, F>(&mut self, f: F) -> WrappedFuture<V, X>
         where X: Send + Clone + 'static,
               F: FnMut(&E) -> Result<V, X> + Send + 'static
     {
@@ -88,7 +88,7 @@ impl <V: Send + Clone, E: Send + Clone> WrappedFuture<V, E> {
     ///
     /// See the module level documentation.
     ///
-    pub fn on_complete<F>(&mut self, mut f: F)
+    pub fn on_complete<F>(&mut self, f: F)
         where F:FnMut(&Result<V, E>) -> () + Send + 'static
     {
         self.inner.lock().unwrap().on_complete(Box::new(f));
@@ -176,7 +176,7 @@ impl <V: Send + Clone, E: Send + Clone> Future<V , E> {
     pub fn asyncp<F>(f: F, executor: TSafe<Executor>) -> WrappedFuture<V, E>
         where F: FnMut() -> Result<V, E> + Send + 'static
     {
-        let mut p: AsyncPromise<V, E> =
+        let p: AsyncPromise<V, E> =
             AsyncPromise::new(Box::new(f), executor);
         p.future()
     }
@@ -294,7 +294,7 @@ impl <V: Send + Clone, E: Send + Clone> Future<V , E> {
     pub fn flat_map<S>(&mut self, mut f: Box<FnMut(&V) -> Result<WrappedFuture<S, E>, E> + Send>) -> WrappedFuture<S, E>
         where S: Send + Clone + 'static
     {
-        let mut p: TSafe<CompletablePromise<S, E>> = tsafe!(CompletablePromise::new());
+        let p: TSafe<CompletablePromise<S, E>> = tsafe!(CompletablePromise::new());
         let fut = p.lock().unwrap().future();
         self.next = Some(Box::new( move |v: &Result<V, E>| {
             if v.is_ok() {
@@ -375,7 +375,7 @@ impl <V: Send + Clone, E: Send + Clone> Future<V , E> {
     }
 
     /// Returns Ok if future is completed of channel wich will be filled when future will be completed
-    pub fn ready(&mut self, timeout: Duration) -> Result<(), mpsc::Receiver<bool>> {
+    pub fn ready(&mut self, _timeout: Duration) -> Result<(), mpsc::Receiver<bool>> {
         if self.value.is_some() {
             Ok(())
         } else {

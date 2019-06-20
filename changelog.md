@@ -1,3 +1,8 @@
+# 0.10.0
+
+* Developed Stash module
+* Added actor_of replacement mechanism to TestActorSystem
+
 # 0.9.1
 
 * Added pre completed futures

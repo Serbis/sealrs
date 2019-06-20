@@ -45,7 +45,7 @@ impl Actor for First {
                 let inter_data = m.data + 100;
 
                 let mut sender = ctx.sender.clone();
-                let mut self_ = ctx.self_.clone();
+                let self_ = ctx.self_.clone();
 
                 // Here actor need send request to the second actor, and when he give the response
                 // from him, will be created and sended response to the sender of the original

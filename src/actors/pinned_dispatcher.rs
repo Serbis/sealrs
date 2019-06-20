@@ -1,5 +1,5 @@
 //! Actor dispatcher with strategy - dedicated thread per actor
-use crate::executors::thread_pinned_executor::{ThreadPinnedExecutor, DistributionStrategy, TaskOptions};
+use crate::executors::thread_pinned_executor::{ThreadPinnedExecutor, DistributionStrategy};
 use crate::executors::executor::{Executor, ExecutorTask};
 use crate::actors::dispatcher::Dispatcher;
 use crate::actors::actor_cell::ActorCell;
@@ -114,7 +114,7 @@ impl Executor for PinnedDispatcher {
 
 impl Dispatcher for PinnedDispatcher {
 
-    fn dispatch(self: &mut Self, cell: TSafe<ActorCell>, bid: usize, mailbox: TSafe<Mailbox + Send>, actor: TSafe<Actor + Send>, envelope: Envelope) {
+    fn dispatch(self: &mut Self, cell: TSafe<ActorCell>, _bid: usize, mailbox: TSafe<Mailbox + Send>, actor: TSafe<Actor + Send>, envelope: Envelope) {
         let mut mailbox_u = mailbox.lock().unwrap();
         mailbox_u.enqueue(envelope);
         if !mailbox_u.is_planned() {

@@ -56,9 +56,9 @@ fn completable_promise() {
 }
 
 fn async_promise() {
-    let mut executor = tsafe!(ThreadPinnedExecutor::new().run());
+    let executor = tsafe!(ThreadPinnedExecutor::new().run());
 
-    let mut p: AsyncPromise<u32, TSafe<Fail + Send>> =
+    let p: AsyncPromise<u32, TSafe<Fail + Send>> =
         AsyncPromise::new(Box::new(|| Ok(50 + 50)), executor);
 
     let mut fut = p.future();
@@ -81,7 +81,7 @@ fn async_promise() {
 
 fn future_combinators() {
 
-    let mut executor = tsafe!(ThreadPinnedExecutor::new().run());
+    let executor = tsafe!(ThreadPinnedExecutor::new().run());
 
     // map
 
@@ -100,7 +100,7 @@ fn future_combinators() {
     let mut fut1: WrappedFuture<u32, TSafe<Fail + Send>> =
         Future::asyncp(|| Ok(500 + 500), executor.clone());
 
-    let mut executor1 = executor.clone();
+    let executor1 = executor.clone();
 
     fut1.flat_map(move |v| {
         let vc = *v;
@@ -135,15 +135,15 @@ fn future_combinators() {
     let mut fut3: WrappedFuture<u32, TSafe<Fail + Send>> =
         Future::asyncp(|| Ok(500 + 500), executor.clone());
 
-    fut3.map(|v| {
+    fut3.map(|_| {
         // Oops! Some error occurs in this map
         let err = tsafe!(MyError::ExampleError { text: String::from("Oops!") });
         Err(err)
-    }).map_err(|e| {
+    }).map_err(|_| {
         // Converts early occurred error to an error of another type
         let other_err = tsafe!(MyOtherError::ExampleError { text: String::from("Other Oops!") });
         Err(other_err)
-    }).recover(|e| {
+    }).recover(|_| {
         // Handle other error in this place
 
         // And return 100 as recovery result ( as default value )
@@ -190,7 +190,7 @@ fn future_combinators() {
 }
 
 pub fn future_await() {
-    let mut executor = tsafe!(ThreadPinnedExecutor::new().run());
+    let executor = tsafe!(ThreadPinnedExecutor::new().run());
 
     // Ready
 

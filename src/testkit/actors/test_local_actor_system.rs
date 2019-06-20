@@ -31,7 +31,6 @@ use std::collections::hash_map::HashMap;
 use crate::actors::scheduler::Scheduler;
 
 
-//TODO способ проверки создания актора можно реализовать через expect_actor_creation. В нем выставляется специальный флаг с рефом, который будет возвращщен после следующего вызова actor_of
 pub struct TestLocalActorSystem {
 
     // ------- mirror ---------
@@ -39,8 +38,10 @@ pub struct TestLocalActorSystem {
     dispatchers: TSafe<HashMap<String, TSafe<Dispatcher + Send>>>,
     dead_letters: Option<ActorRef>,
     scheduler: TSafe<Scheduler>,
-    watcher: TSafe<Watcher>
+    watcher: TSafe<Watcher>,
     // --------- end ----------
+
+    sub: TSafe<Option<ActorRef>>
 
 }
 
@@ -60,7 +61,8 @@ impl TestLocalActorSystem {
             dispatchers: tsafe!(dispatchers),
             dead_letters: None,
             scheduler: tsafe!(Scheduler::new()),
-            watcher: tsafe!(Watcher::new())
+            watcher: tsafe!(Watcher::new()),
+            sub: tsafe!(None)
         };
 
         let system_safe = tsafe!(system.clone());
@@ -84,12 +86,31 @@ impl TestLocalActorSystem {
     pub fn create_probe(self: &Self, name: Option<&str>) -> TestProbe {
         TestProbe::new(tsafe!(self.clone()), name)
     }
+
+    /// At next call of actor_of specified ActorRef will be returned instead of really created
+    /// actor from a props.
+    pub fn replace_actor_of(&mut self, aref: ActorRef) {
+        *self.sub.lock().unwrap() = Some(aref);
+    }
 }
 
 impl ActorRefFactory for TestLocalActorSystem {
 
     /// Identical to original
     fn actor_of(self: &mut Self, props: Props, name: Option<&str>) -> ActorRef {
+        {
+            let mut sub = self.sub.lock().unwrap();
+            if sub.is_some() {
+                let aref = {
+                    let r = sub.as_ref().unwrap();
+                    (*r).clone()
+                };
+
+                *sub = None;
+                return aref
+            }
+        }
+
 
         // ------- mirror ---------
         let mailbox = tsafe!(UnboundMailbox::new());
@@ -179,7 +200,7 @@ impl ActorRefFactory for TestLocalActorSystem {
     }
 
     /// Unregister watcher from receive 'watching events' from observed actor
-    fn unwatch(&mut self, mut watcher: &ActorRef, observed: &ActorRef) {
+    fn unwatch(&mut self, watcher: &ActorRef, observed: &ActorRef) {
         self.watcher.lock().unwrap().unwatch(watcher, observed);
     }
 }
@@ -258,12 +279,15 @@ impl Clone for TestLocalActorSystem {
             Some(v) => Some((*v).clone()),
             None => None
         };
+
+
         TestLocalActorSystem {
             nids: self.nids,
             dispatchers: self.dispatchers.clone(),
             dead_letters: dead_letter, //self.dead_letters.clone()
             scheduler: self.scheduler.clone(),
-            watcher: self.watcher.clone()
+            watcher: self.watcher.clone(),
+            sub: self.sub.clone()
         }
     }
 }

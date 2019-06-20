@@ -57,6 +57,23 @@
 //!  fn as_any(self: &Self) -> &Any { self }
 //! ```
 //!
+//! ### Substitution of created actors
+//!
+//! Method replace_actor_of do the next thing. He sets special flag in the actor system, which
+//! indicates, that when next actor_of will be called, instead of creating new actor, specified
+//! ActorRef will be return. This feature is used when tested actor must create some other
+//! actor, and you want to intercept this action and inject a test probe actor instead a real.
+//! After that, you will receive all message addressed to that actor and may respond to it.
+//! For example, it is possible to present the following situation. You send a message to a
+//! target actor. He handle that message, creates new other actor and send to him some other
+//! message. You may intercept this interaction in such code:
+//!
+//! ```
+//! system.replace_actor_of(fiction.aref());
+//! probe.send(&mut target, msg!(commands::SomeMessages { }));
+//! fiction.expect_msg(type_matcher!(other_actor_commands::SomeMessages));
+//! ```
+//!
 //! # TestProbe
 //!
 //! This is a heart part of actor's testing. TestProbe is an object, which constructed over inner

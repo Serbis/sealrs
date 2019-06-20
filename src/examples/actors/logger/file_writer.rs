@@ -33,7 +33,7 @@ impl Actor for FileWriter {
         let msg = msg.get();
         match_downcast_ref!(msg, {
             m: Write => {
-               fs::write(&self.file, m.text.as_bytes());
+               fs::write(&self.file, m.text.as_bytes()).unwrap();
                let resp = msg!(Ok { chars_count: m.text.len() });
                ctx.sender.tell(resp, Some(&ctx.self_));
             },

@@ -9,7 +9,7 @@ pub use std::sync::{Arc, Mutex};
 pub fn run() {
     let mut system = LocalActorSystem::new();
 
-    let mut second = system
+    let second = system
         .actor_of(second::props(), Some("second"));
 
     let mut first = system

@@ -8,6 +8,7 @@ pub use crate::actors::actor::Actor;
 pub use crate::actors::actor_context::ActorContext;
 pub use crate::actors::props::Props;
 pub use crate::actors::timers::Timers;
+pub use crate::actors::stash::{Stash, RealStash, StubStash};
 pub use crate::actors::abstract_actor_ref::ActorRef;
 
 

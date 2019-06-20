@@ -3,6 +3,7 @@ use crate::examples::actors::basic::basic_actor;
 use super::my_dispatcher::MyDispatcher;
 use std::sync::{Mutex, Arc};
 use std::thread;
+use std::time::Duration;
 
 struct OtherMsg {}
 
@@ -36,12 +37,12 @@ pub fn run() {
     let msg = msg!(OtherMsg {});
     printer.tell(msg, None);
 
-    thread::sleep_ms(1000);
+    thread::sleep(Duration::from_secs(1));
 
     // Stops the actor
     system.stop(&mut printer);
 
-    thread::sleep_ms(1000);
+    thread::sleep(Duration::from_secs(1));
 
     // Terminate the actor system
     system.terminate();

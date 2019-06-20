@@ -12,8 +12,9 @@
 //! 9. [More about DeadLetters](#more-about-deadletters)
 //! 10. [More about dispatchers](#more-about-dispatchers)
 //! 11. [Timers](#timers)
-//! 12. [Watching](#watching)
-//! 13. [Ask](#ask)
+//! 12. [Stash](#stash)
+//! 13. [Watching](#watching)
+//! 14. [Ask](#ask)
 //!
 //!
 //! # Introduction
@@ -530,6 +531,27 @@
 //! This situation may be more dangerous, if intervals timers exists. If don't cancel it after actor
 //! was stopped, memory leaks occurs, because actor doesn't may be dropped because of him.
 //!
+//! # Stash
+//!
+//! If an actor have several lines of behavior, exists one serious problem. What to do with messages
+//! not from current behavior? For this situation, exists special pattern named stashing. He
+//! expressed as simple struct which works as user side mailbox. You can put messages into it and when
+//! need you may initiate resend of stored messages. Normally stash created in pre_start hook:
+//!
+//! ```
+//! self.stash = RealStash::new(&ctx);
+//! ```
+//!
+//! And after that you can use it:
+//!
+//! ```
+//! self.stash.stash(&msg, &ctx);
+//!
+//! // In other message handler ...
+//!
+//! self.stash.unstash_all();
+//! ```
+//!
 //! # Watching
 //!
 //! Each actor have special set of internal events. When event from this set occurs, it's passed
@@ -673,3 +695,4 @@ pub mod timers;
 pub mod watcher;
 pub mod ask_actor;
 pub mod wrapped_dispatcher;
+pub mod stash;

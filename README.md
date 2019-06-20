@@ -13,11 +13,8 @@ This library have a very reach documentation with big count of examples and expl
 
 # New in release
 
-* Dispatchers adding mechanism
-* Dispatchers swapping mechanism
-* Dispatchers wrapper for you may use dispatcher as linear executor
-* Changed actor system constructor. Now he returns flat type instead TSafe
-* Developed PinnedDispatcher
+* Developed Stash module
+* Added actor_of replacement mechanism to TestActorSystem
 
 See [changelog](https://github.com/Serbis/sealrs/blob/master/changelog.md) for info about new releases.
 

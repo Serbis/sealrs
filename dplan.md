@@ -1,14 +1,11 @@
 
 
-* Stashing
-* Pipe
-* actor_of hook in testkit
 
 * Streams
 
 * Batch messages processing
-* Configs
 
+* Pipe
 * Dispatcher with dynamically changed threads count
 * Dispatcher with dynamically changed throughput value
 * Become/Unbecome

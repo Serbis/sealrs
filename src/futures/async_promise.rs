@@ -23,7 +23,7 @@ impl <V: Send + Clone, E: Send + Clone> AsyncPromise<V, E> {
     pub fn new(f: Box<FnMut() -> Result<V, E> + Send>, executor: TSafe<Executor>) -> AsyncPromise<V, E> {
         let fut = tsafe!(Future::new());
         let mut f = f;
-        let mut executor = executor;
+        let executor = executor;
         let mut obj = AsyncPromise {
             future: fut.clone()
         };

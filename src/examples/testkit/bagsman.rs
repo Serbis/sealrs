@@ -23,6 +23,8 @@ mod commands {
     pub struct ToRef { }
     pub struct MutState { pub data: u32 }
     pub struct Bomb {}
+    pub struct CreateFiction {}
+    pub struct MessageToFiction {}
 }
 
 mod responses {
@@ -33,6 +35,17 @@ mod responses {
     pub struct OtherResponse { pub  data: u32 }
 }
 
+//-------------------------
+
+struct NonFictionActor {}
+
+impl Actor for NonFictionActor {
+    fn receive(&mut self, _msg: Message, _ctx: ActorContext) -> bool {
+        unimplemented!()
+    }
+}
+
+//-------------------------
 
 pub struct BagsMan {
     referal: Option<ActorRef>,
@@ -89,7 +102,11 @@ impl Actor for BagsMan {
                 self.data = m.data;
             },
             _m: commands::Bomb => {
-                ctx.system.lock().unwrap().stop(&mut ctx.self_);
+                ctx.system().stop(&mut ctx.self_.clone());
+            },
+            _m: commands::CreateFiction => {
+                let mut nfa = ctx.system().actor_of(Props::new(tsafe!(NonFictionActor {})), None);
+                nfa.tell(msg!(commands::MessageToFiction {}), Some(&ctx.self_))
             },
             _m: commands::ToRef => {
                 let msg = msg!(logger::Log { text: String::from("Text"), target: logger::LogTarget::File });
@@ -114,7 +131,6 @@ mod tests {
     use crate::examples::actors::logger::logger;
     use std::any::Any;
     use std::time::Duration;
-    use std::thread;
     use super::*;
 
 
@@ -394,6 +410,20 @@ mod tests {
             probe.send(&mut target, msg!(commands::Bomb {  }));
             probe.expect_terminated(&target);
         }
+
+        // ================================ replace_actor_of ================================
+
+        test_case!("Must create actor and send him a message");
+        {
+            let mut fiction = system.create_probe(None);
+            let mut probe = system.create_probe(None);
+            let mut target = system.actor_of(self::props(Some(probe.aref())), None);
+
+            system.replace_actor_of(fiction.aref());
+            probe.send(&mut target, msg!(commands::CreateFiction { }));
+            fiction.expect_msg(type_matcher!(commands::MessageToFiction));
+        }
+
 
         // ================================ various matchers ================================
 

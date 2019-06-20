@@ -125,11 +125,11 @@ macro_rules! extended_type_matcher {
 macro_rules! in_state {
         ($r:ident , $t:path, $a:ident => $e:expr) => {
             {
-                let mut target_any = $r.as_any();
-                let mut sd = target_any.downcast_ref::<Box<TestLocalActorRef>>().unwrap();
+                let target_any = $r.as_any();
+                let sd = target_any.downcast_ref::<Box<TestLocalActorRef>>().unwrap();
                 let mut actor = sd.actor.lock().unwrap();
-                let mut actor = actor.as_any();
-                let mut $a = actor.downcast_ref::<$t>().unwrap();
+                let actor = actor.as_any();
+                let $a = actor.downcast_ref::<$t>().unwrap();
                 $e;
             }
         };

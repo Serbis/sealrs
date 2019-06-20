@@ -13,14 +13,14 @@ pub struct SingleTick {}
 pub struct PeriodicTick {}
 
 pub struct Ticker {
-    timers: Option<TSafe<Timers>>,
+    timers: Timers,
     ticks: u32
 }
 
 impl Ticker {
     pub fn new() -> Ticker {
         Ticker {
-            timers: None,
+            timers: StubTimers::new(),
             ticks: 0,
         }
     }
@@ -29,7 +29,7 @@ impl Ticker {
 impl Actor for Ticker {
 
     fn pre_start(self: &mut Self, ctx: ActorContext) {
-        let mut timers = Timers::new(ctx.system.clone());
+        let mut timers = RealTimers::new(ctx.system.clone());
 
         timers.start_single(
             0,
@@ -43,14 +43,14 @@ impl Actor for Ticker {
             &ctx.self_,
             &ctx.self_,
             Duration::from_secs(2),
-            || msg!(PeriodicTick {}));
+            Box::new(|| msg!(PeriodicTick {})));
 
 
-        self.timers = Some(tsafe!(timers));
+        self.timers = timers;
     }
 
     fn post_stop(&mut self, _ctx: ActorContext) {
-        self.timers.as_ref().unwrap().lock().unwrap().cancel_all();
+        self.timers.cancel_all();
     }
 
 
@@ -61,7 +61,7 @@ impl Actor for Ticker {
             },
             _m: PeriodicTick => {
                 if self.ticks == 3 {
-                    self.timers.as_ref().unwrap().lock().unwrap().cancel(1);
+                    self.timers.cancel(1);
                     println!("PeriodicTick cancelled");
                 } else {
                     println!("PeriodicTick");

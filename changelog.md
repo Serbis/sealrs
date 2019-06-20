@@ -1,3 +1,7 @@
+# 0.10.1
+
+* Changes in timers public api
+
 # 0.10.0
 
 * Developed Stash module

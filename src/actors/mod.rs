@@ -29,13 +29,13 @@
 //! * TestKit
 //! * Timers
 //! * Watching
+//! * Various dispatchers realizations
 //!
 //! # Perspective features:
 //! Under this features already exists architectural basis, and their implementation is a question
 //! of my free time.
 //!
 //! * Mailboxes with user defined functional
-//! * Various dispatchers realizations
 //! * Supervising
 //! * FSM
 //! * Distributed actor systems
@@ -463,7 +463,7 @@
 //! impl Actor for Ticker {
 //!
 //!    fn pre_start(self: &mut Self, ctx: ActorContext) {
-//!        let mut timers = Timers::new(ctx.system.clone());
+//!        let mut timers = RealTimers::new(ctx.system.clone());
 //!
 //!        timers.start_single(
 //!           0,
@@ -477,13 +477,13 @@
 //!            &ctx.self_,
 //!            &ctx.self_,
 //!            Duration::from_secs(2),
-//!            || msg!(PeriodicTick {}));
+//!            Box::new(|| msg!(PeriodicTick {})));
 //!
 //!        self.timers = Some(tsafe!(timers));
 //!    }
 //!
 //!    fn post_stop(&mut self, _ctx: ActorContext) {
-//!        self.timers.as_ref().unwrap().lock().unwrap().cancel_all();
+//!        self.timers.cancel_all();
 //!    }
 //!
 //!
@@ -495,7 +495,7 @@
 //!            },
 //!            m: PeriodicTick => {
 //!               if (self.ticks == 3) {
-//!                   self.timers.as_ref().unwrap().lock().unwrap().cancel(1);
+//!                   self.timers.cancel(1);
 //!                   println!("PeriodicTick cancelled");
 //!               } else {
 //!                   println!("PeriodicTick");

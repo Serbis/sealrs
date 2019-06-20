@@ -259,7 +259,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "sealrs"
-version = "0.10.0"
+version = "0.10.1"
 dependencies = [
  "chrono 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",

@@ -9,7 +9,7 @@ use crate::common::tsafe::TSafe;
 use crate::actors::actor::Actor;
 use crate::actors::actor::PoisonPill;
 use crate::actors::actor_context::ActorContext;
-use crate::actors::timers::Timers;
+use crate::actors::timers::{Timers, RealTimers};
 use crate::actors::message::Message;
 use crate::actors::abstract_actor_ref::AskTimeoutError;
 use crate::futures::promise::Promise;
@@ -39,7 +39,7 @@ impl AskActor {
 impl Actor for AskActor {
 
     fn pre_start(self: &mut Self, ctx: ActorContext) {
-        let mut timers = Timers::new(ctx.system.clone());
+        let mut timers = RealTimers::new(ctx.system.clone());
 
         timers.start_single(
             0,

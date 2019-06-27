@@ -1,3 +1,11 @@
+# 0.11.2
+
+* Change in mutability of ActorContext in state handlers of fsm
+
+# 0.11.1
+
+* Bug on crates.io ( previous version does not load properly)
+
 # 0.11.0
 
 * FSM module

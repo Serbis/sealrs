@@ -1,6 +1,6 @@
 [package]
 name = "sealrs"
-version = "0.11.0"
+version = "0.11.1"
 authors = ["Oleg Vyalkin <ovvyalkin@gmail.com>"]
 edition = "2018"
 description = "Set of classic asynchronous primitives (Actors, Executors, Futures / Promises)"
@@ -23,6 +23,8 @@ log = "0.4.0"
 #dotenv = "0.14.1"
 #futures = "0.1.27"
 #jsonrpc-http-server = "12.0.0"
+
+
 
 [badges]
 maintenance = { status = "actively-developed" }

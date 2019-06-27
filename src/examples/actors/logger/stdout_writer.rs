@@ -24,7 +24,7 @@ impl StdoutWriter {
 }
 
 impl Actor for StdoutWriter {
-    fn receive(&mut self, msg: Message, mut ctx: ActorContext) -> bool {
+    fn receive(&mut self, msg: Message, mut ctx: ActorContext) -> HandleResult {
         let msg = msg.get();
         match_downcast_ref!(msg, {
             m: Write => {
@@ -32,9 +32,9 @@ impl Actor for StdoutWriter {
                let resp = msg!(Ok { chars_count: m.text.len() });
                ctx.sender.tell(resp, Some(&ctx.self_));
             },
-            _ => return false
+            _ => return Ok(false)
         });
 
-        true
+        Ok(true)
     }
 }

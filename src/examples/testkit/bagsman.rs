@@ -40,7 +40,7 @@ mod responses {
 struct NonFictionActor {}
 
 impl Actor for NonFictionActor {
-    fn receive(&mut self, _msg: Message, _ctx: ActorContext) -> bool {
+    fn receive(&mut self, _msg: Message, _ctx: ActorContext) -> HandleResult {
         unimplemented!()
     }
 }
@@ -63,7 +63,7 @@ impl BagsMan {
 
 impl Actor for BagsMan {
 
-    fn receive(self: &mut Self, msg: Message, mut ctx: ActorContext) -> bool {
+    fn receive(self: &mut Self, msg: Message, mut ctx: ActorContext) -> HandleResult {
         let msg = msg.get();
         match_downcast_ref!(msg, {
             _m: commands::MsgOk => {
@@ -114,10 +114,10 @@ impl Actor for BagsMan {
                     x.tell(msg, Some(&ctx.self_))
                 }
             },
-            _ => return false
+            _ => return Ok(false)
         });
 
-        true
+        Ok(true)
     }
 
     fn as_any(&mut self) -> &Any { self }

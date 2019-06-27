@@ -16,7 +16,7 @@ impl Target {
 
 impl Actor for Target {
 
-    fn receive(self: &mut Self, _msg: Message, _ctx: ActorContext) -> bool {
-        false
+    fn receive(self: &mut Self, _msg: Message, _ctx: ActorContext) -> HandleResult {
+        Ok(false)
     }
 }

@@ -8,3 +8,4 @@ pub mod pinned;
 pub mod custom_dispatcher;
 pub mod dispatcher_promise;
 pub mod stash;
+pub mod fsm;

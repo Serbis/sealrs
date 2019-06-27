@@ -23,7 +23,7 @@ impl LongWorker {
 
 impl Actor for LongWorker {
 
-    fn receive(self: &mut Self, msg: Message, _ctx: ActorContext) -> bool {
+    fn receive(self: &mut Self, msg: Message, _ctx: ActorContext) -> HandleResult {
         let msg = msg.get();
         match_downcast_ref!(msg, {
             m: DoLongWork => {
@@ -32,10 +32,10 @@ impl Actor for LongWorker {
                 println!("LongWorker - {} / ended doing some work within {} milliseconds",
                     self.marker, m.time.as_millis());
             },
-            _ => return false
+            _ => return Ok(false)
         });
 
-        true
+        Ok(true)
     }
 
 }

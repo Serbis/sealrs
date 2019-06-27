@@ -29,7 +29,7 @@ impl FileWriter {
 }
 
 impl Actor for FileWriter {
-    fn receive(self: &mut Self, msg: Message, mut ctx: ActorContext) -> bool {
+    fn receive(self: &mut Self, msg: Message, mut ctx: ActorContext) -> HandleResult {
         let msg = msg.get();
         match_downcast_ref!(msg, {
             m: Write => {
@@ -37,10 +37,10 @@ impl Actor for FileWriter {
                let resp = msg!(Ok { chars_count: m.text.len() });
                ctx.sender.tell(resp, Some(&ctx.self_));
             },
-            _ => return false
+            _ => return Ok(false)
         });
 
-        true
+        Ok(true)
     }
 }
 

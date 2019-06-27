@@ -35,7 +35,7 @@ impl Actor for Watcher {
         ctx.system().unwatch(&ctx.self_, &self.target);
     }
 
-    fn receive(self: &mut Self, msg: Message, ctx: ActorContext) -> bool {
+    fn receive(self: &mut Self, msg: Message, ctx: ActorContext) -> HandleResult {
         match_downcast_ref!(msg.get(), {
             _m: Terminated => {
                 // Sender of this message is the target actor. It indicates that the target actor was
@@ -44,9 +44,9 @@ impl Actor for Watcher {
                     println!("Target actor '{}' was terminated", ctx.sender);
                 }
             },
-            _ => return false
+            _ => return Ok(false)
         });
 
-        true
+        Ok(true)
     }
 }

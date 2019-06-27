@@ -8,7 +8,7 @@ use crate::common::tsafe::TSafe;
 use crate::testkit::actors::test_local_actor_system::TestLocalActorSystem;
 use crate::actors::actor_ref_factory::ActorRefFactory;
 use crate::actors::abstract_actor_ref::ActorRef;
-use crate::actors::actor::Actor;
+use crate::actors::actor::{Actor, HandleResult};
 use crate::actors::props::Props;
 use crate::actors::watcher::events::Terminated;
 use crate::actors::actor_context::ActorContext;
@@ -534,7 +534,7 @@ impl TestProbeActor {
 
 impl Actor for TestProbeActor {
 
-    fn receive(&mut self, msg: Message, ctx: ActorContext) -> bool {
+    fn receive(&mut self, msg: Message, ctx: ActorContext) -> HandleResult {
         if *self.actor_may_work.lock().unwrap() == false {
             self.lock();
         }
@@ -562,7 +562,7 @@ impl Actor for TestProbeActor {
 
         self.probe_cvar.notify_one();
 
-        true
+        Ok(true)
     }
 
 }

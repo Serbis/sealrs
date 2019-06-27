@@ -1,3 +1,8 @@
+# 0.11.0
+
+* FSM module
+* Changed return type of Actor::receive (supervision requirements)
+
 # 0.10.1
 
 * Changes in timers public api

@@ -19,7 +19,7 @@ impl SomeActor {
 
 impl Actor for SomeActor {
 
-    fn receive(self: &mut Self, msg: Message, ctx: ActorContext) -> bool {
+    fn receive(self: &mut Self, msg: Message, ctx: ActorContext) -> HandleResult {
         let msg = msg.get();
         match_downcast_ref!(msg, {
             _m: SomeMsg => {
@@ -29,10 +29,10 @@ impl Actor for SomeActor {
                     Ok(())
                 }, dispatcher);
             },
-            _ => return false
+            _ => return Ok(false)
         });
 
-        true
+        Ok(true)
     }
 }
 

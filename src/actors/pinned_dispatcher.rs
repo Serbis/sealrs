@@ -65,7 +65,12 @@ impl PinnedDispatcher {
                         sender.clone(),
                         envelope.receiver.clone(),
                         envelope.system.clone());
-                    actor.receive(msg.clone(), ctx)
+                    let im = actor.receive(msg.clone(), ctx);
+                    if im.is_ok() {
+                        im.ok().unwrap()
+                    } else {
+                        false
+                    }
                 };
 
                 if !handled {

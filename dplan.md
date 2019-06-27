@@ -1,6 +1,4 @@
 
-* FSM
-
 * Streams
 
 * Batch messages processing

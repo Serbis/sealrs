@@ -32,16 +32,16 @@ impl Actor for BasicActor {
         println!("BasicActor is stopped")
     }
 
-    fn receive(self: &mut Self, msg: Message, _ctx: ActorContext) -> bool {
+    fn receive(self: &mut Self, msg: Message, _ctx: ActorContext) -> HandleResult {
         let msg = msg.get();
         match_downcast_ref!(msg, {
             m: Print => {
                 self.printed_chars = self.printed_chars + m.text.len();
                 println!("{}", m.text);
             },
-            _ => return false
+            _ => return Ok(false)
         });
 
-        true
+        Ok(true)
     }
 }

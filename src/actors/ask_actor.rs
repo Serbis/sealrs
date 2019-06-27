@@ -6,7 +6,7 @@
 /// promise will be failed with AskTimeoutError.
 ///
 use crate::common::tsafe::TSafe;
-use crate::actors::actor::Actor;
+use crate::actors::actor::{Actor, HandleResult};
 use crate::actors::actor::PoisonPill;
 use crate::actors::actor_context::ActorContext;
 use crate::actors::timers::{Timers, RealTimers};
@@ -52,7 +52,7 @@ impl Actor for AskActor {
     }
 
 
-    fn receive(self: &mut Self, msg: Message, mut ctx: ActorContext) -> bool {
+    fn receive(self: &mut Self, msg: Message, mut ctx: ActorContext) -> HandleResult {
         let tp = {
             match_downcast_ref!(msg.get(), {
                 _m: Timeout => {
@@ -74,14 +74,14 @@ impl Actor for AskActor {
             self.p.failure(AskTimeoutError {});
             self.timers.as_ref().unwrap().lock().unwrap().cancel_all();
             ctx.system.lock().unwrap().stop(&mut ctx.self_);
-            true
+            Ok(true)
         } else if tp == 1 {
-            false
+            Ok(false)
         } else {
             self.p.success(msg.clone());
             self.timers.as_ref().unwrap().lock().unwrap().cancel_all();
             ctx.system.lock().unwrap().stop(&mut ctx.self_);
-            true
+            Ok(true)
         }
     }
 }

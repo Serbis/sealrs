@@ -64,7 +64,12 @@ impl MyDispatcher {
                     envelope.receiver.clone(),
                     envelope.system.clone());
                 println!(" - Handle message with actor");
-                actor.receive(msg.clone(), ctx)
+                let im = actor.receive(msg.clone(), ctx);
+                if im.is_ok() {
+                    im.ok().unwrap()
+                } else {
+                    false
+                }
             };
 
             if !handled {

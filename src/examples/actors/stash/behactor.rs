@@ -31,7 +31,7 @@ impl Actor for Behactor {
         self.stash = RealStash::new(&ctx)
     }
 
-    fn receive(self: &mut Self, msg: Message, ctx: ActorContext) -> bool {
+    fn receive(self: &mut Self, msg: Message, ctx: ActorContext) -> HandleResult {
         let message = msg.get();
 
         match self.behavior {
@@ -51,7 +51,7 @@ impl Actor for Behactor {
 
                     },
 
-                    _ => return false
+                    _ => return Ok(false)
                 });
             },
             _ => {
@@ -71,6 +71,6 @@ impl Actor for Behactor {
         }
 
 
-        true
+        Ok(true)
     }
 }

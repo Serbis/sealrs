@@ -13,14 +13,13 @@ This library have a very reach documentation with big count of examples and expl
 
 # New in release
 
-* Developed Stash module
-* Added actor_of replacement mechanism to TestActorSystem
+* Developed FSM module
 
 See [changelog](https://github.com/Serbis/sealrs/blob/master/changelog.md) for info about new releases.
 
 # In the next release
 
-* PinnedDispatcher ( actor per thread dispatch )
+* Basic supervision
 
 # Developing stage info
 

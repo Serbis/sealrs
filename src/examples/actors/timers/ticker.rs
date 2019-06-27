@@ -54,7 +54,7 @@ impl Actor for Ticker {
     }
 
 
-    fn receive(self: &mut Self, msg: Message, _ctx: ActorContext) -> bool {
+    fn receive(self: &mut Self, msg: Message, _ctx: ActorContext) -> HandleResult {
         match_downcast_ref!(msg.get(), {
             _m: SingleTick => {
                 println!("SingleTick");
@@ -69,9 +69,9 @@ impl Actor for Ticker {
                 }
 
             },
-            _ => return false
+            _ => return Ok(false)
         });
 
-        true
+        Ok(true)
     }
 }

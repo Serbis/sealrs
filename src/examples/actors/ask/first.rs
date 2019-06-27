@@ -33,7 +33,7 @@ impl First {
 
 impl Actor for First {
 
-    fn receive(&mut self, msg: Message, mut ctx: ActorContext) -> bool {
+    fn receive(&mut self, msg: Message, mut ctx: ActorContext) -> HandleResult {
         let msg = msg.get();
         match_downcast_ref!(msg, {
             _m: commands::GetFlatResponse => {
@@ -68,9 +68,9 @@ impl Actor for First {
             },
 
 
-            _ => return false
+            _ => return Ok(false)
         });
 
-        true
+        Ok(true)
     }
 }

@@ -6,10 +6,12 @@ use crate::actors::actor_context::ActorContext;
 use crate::actors::message::Message;
 use std::any::Any;
 
+pub type HandleResult = Result<bool, Box<Any + Send>>;
+
 pub trait Actor {
     fn pre_start(&mut self, _ctx: ActorContext) {}
     fn post_stop(&mut self, _ctx: ActorContext) {}
-    fn receive(&mut self, msg: Message, ctx: ActorContext) -> bool;
+    fn receive(&mut self, msg: Message, ctx: ActorContext) -> HandleResult;
     fn as_any(&mut self) -> &Any {
         panic!()
     }

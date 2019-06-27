@@ -15,6 +15,7 @@
 //! 12. [Stash](#stash)
 //! 13. [Watching](#watching)
 //! 14. [Ask](#ask)
+//! 15. [FSM](#fsm)
 //!
 //!
 //! # Introduction
@@ -30,6 +31,7 @@
 //! * Timers
 //! * Watching
 //! * Various dispatchers realizations
+//! * FSM
 //!
 //! # Perspective features:
 //! Under this features already exists architectural basis, and their implementation is a question
@@ -37,7 +39,6 @@
 //!
 //! * Mailboxes with user defined functional
 //! * Supervising
-//! * FSM
 //! * Distributed actor systems
 //!
 //!
@@ -142,17 +143,17 @@
 //!
 //! impl Actor for BasicActor {
 //!
-//!     fn receive(self: &mut Self, msg: Message, _ctx: ActorContext) -> bool {
+//!     fn receive(self: &mut Self, msg: Message, _ctx: ActorContext) -> HandleResult {
 //!         let msg = msg.get();
 //!         match_downcast_ref!(msg, {
 //!             m: Print => {
 //!                 self.printed_chars = self.printed_chars + m.text.len();
 //!                 println!("{}", m.text);
 //!             },
-//!             _ => return false
+//!             _ => return Ok(false)
 //!         });
 //!
-//!         true
+//!         Ok(true)
 //!     }
 //! }
 //! ```
@@ -197,8 +198,8 @@
 //! (such as PoisonPill, witch stops the actor). If it is, it will be processed, some service
 //! actions will be performed and message will dropped. He will does not reach the  receive function
 //! of the target actor. If this message is not a service message, actor.receive function will be
-//! called. This function must return a boolean value, which indicates fact, was  handled message or
-//! not. If the message was handled, message processing logic is end, else the message will be dropped
+//! called. This function must return a HandleResult value, which indicates fact, was  handled message or
+//! not (or some error occurs). If the message was handled, message processing logic is end, else the message will be dropped
 //! to the DeadLetter.
 //!
 //! Now consider the the function of messages receive of our actor. It have three args. First arg
@@ -277,7 +278,7 @@
 //!
 //! ```
 //!// Logger
-//!fn receive(self: &mut Self, msg: Message, ctx: ActorContext) -> bool {
+//!fn receive(self: &mut Self, msg: Message, ctx: ActorContext) -> HandleResult {
 //!    let msg = msg.get();
 //!    match_downcast_ref!(msg, {
 //!            m: Log => {
@@ -300,15 +301,15 @@
 //!                 println!("Stout logger write '{}' chars", m.chars_count);
 //!                self.chars_counter = self.chars_counter + m.chars_count;
 //!            },
-//!            _ => return false
+//!            _ => return Ok(false)
 //!        });
 //!
-//!    true
+//!    Ok(true)
 //!}
 //!
 //!
 //!//StdoutWriter
-//!fn receive(self: &mut Self, msg: Message, mut ctx: ActorContext) -> bool {
+//!fn receive(self: &mut Self, msg: Message, mut ctx: ActorContext) -> HandleResult {
 //!    let msg = msg.get();
 //!    match_downcast_ref!(msg, {
 //!            m: Write => {
@@ -316,15 +317,15 @@
 //!               let resp = msg!(Ok { chars_count: m.text.len() });
 //!               ctx.sender.tell(resp, Some(&ctx.self_));
 //!            },
-//!            _ => return false
+//!            _ => return Ok(false)
 //!        });
 //!
-//!    true
+//!    Ok(true)
 //!}
 //!
 //!
 //! //FileWriter
-//!fn receive(self: &mut Self, msg: Message, mut ctx: ActorContext) -> bool {
+//!fn receive(self: &mut Self, msg: Message, mut ctx: ActorContext) -> HandleResult {
 //!    let msg = msg.get();
 //!    match_downcast_ref!(msg, {
 //!            m: Write => {
@@ -332,10 +333,10 @@
 //!               let resp = msg!(Ok { chars_count: m.text.len() });
 //!               ctx.sender.tell(resp, Some(&ctx.self_));
 //!            },
-//!            _ => return false
+//!            _ => return Ok(false)
 //!        });
 //!
-//!    true
+//!    Ok(true)
 //!}
 //! ```
 //!
@@ -487,7 +488,7 @@
 //!    }
 //!
 //!
-//!    fn receive(self: &mut Self, msg: Message, ctx: ActorContext) -> bool {
+//!    fn receive(self: &mut Self, msg: Message, ctx: ActorContext) -> HandleResult {
 //!        let msg = msg.get();
 //!        match_downcast_ref!(msg, {
 //!            m: SingleTick => {
@@ -502,10 +503,10 @@
 //!                   self.ticks = self.ticks + 1;
 //!              }
 //!           },
-//!            _ => return false
+//!            _ => return Ok(false)
 //!        });
 //!
-//!        true
+//!        Ok(true)
 //!    }
 //! }
 //! ```
@@ -638,7 +639,7 @@
 //! futures. On practice it may work follows:
 //!
 //! ```
-//! fn receive(&mut self, msg: Message, mut ctx: ActorContext) -> bool {
+//! fn receive(&mut self, msg: Message, mut ctx: ActorContext) -> HandlerResult {
 //!     let msg = msg.get();
 //!     match_downcast_ref!(msg, {
 //!         m: commands::RequestFromA => {
@@ -661,14 +662,132 @@
 //!                     }
 //!                 });
 //!             },
-//!             _ => return false
+//!             _ => return Ok(false)
 //!         });
 //!
-//!    true
+//!    Ok(true)
 //! }
 //! ```
 //!
 //! You may see full example of Ask usage in the 'examples/actors/ask' submodule.
+//!
+//! # FSM
+//!
+//! FSM is transcripted as Finite State Machine. This conceptions is very powerful used with
+//! actors, because permits you to create fully asynchronous state machines with full control
+//! around them behavior.
+//!
+//! Actor may be presented as FSM if it her logic satisfies few things:
+//! * He uses few lines of behavior with various data
+//! * Some behaviours needs a timeouts
+//! * Lifetime of an actor is finite (this is partial demand, because may exist fsm with lifetime
+//! equals to lifetime of entire program).
+//!
+//! All this aspects may be realized with conditional operators and timers, but in this case, your
+//! code will be is very dirty. For eliminate this difficulties, in the library exists special
+//! module, which contains abstraction layer for creating of FSM.
+//!
+//! ### State and Data
+//!
+//! State is the main executable unit of any FSM. Each state accompanied by a some Data. In any
+//! piece of time, FSM always be in one of some State and have one of some Data. States and Data
+//! on the language level describes as enum. Separate State handlers describes as function with the next
+//! signature:
+//!
+//! ```
+//! pub fn state0(&mut self, msg: &Message, ctx: &ActorContext, data: &Data) -> StateResult<Self, State, Data> {
+//!     //Make a some actions with a message based on a presented Data
+//! }
+//! ```
+//! You may perceive this handler as special variant of the standard receive function of actor.
+//! There you may do similar actions as in the receive functions, buf instead HandleResult, you
+//! must return StateResult. Last type is the alias for the very complex type, so for prevent you from
+//! creating a trash code, library presents few functions for produce this result. This result
+//! indicates to the upper library code, what to do next - switch state or data, stop actor or
+//! some other things.
+//!
+//! * Fsm::goto(state) - indicates to change current state to some other.
+//! * Fsm::goto_using(state, data) - indicates to change current state and data to some others
+//! * Fsm::stay() - indicates to stay in current state and with current data
+//! * Fsm::stay_using(data) - indicates to stay in current state but with some other data
+//! * Fsm::stop() - indicates that work of FSM is completed (stops the actor)
+//! * Fsm::unhandled() - indicates that current message was doest not be handled (unknown type
+//! of message or some other reasons)
+//!
+//! Each state handlers must be explicitly registered in the fsm object:
+//!
+//! ```
+//! fsm.register_handler(State::StateA, Self::state_a, Duration::from_secs(5));
+//! ```
+//!
+//! In this call you must specify the state on which attached handler, handler function and state
+//! timeout.
+//!
+//! ### States timeouts
+//!
+//! Each separate state have it's own idle timeout. If fsm will does not receive any messages in
+//! this timeout, library automatically send special message SendTimeout, which will be indicates
+//! to the user code, that state timeout was reached. What to do next in this situation is youre
+//! decision.
+//!
+//! ### Unhandled messages
+//!
+//! You may register special handler of unhandled messages. This function will be called always,
+//! when some state completes with Fsm::unhandled(). Handler is useful when you need detect
+//! unhandled message in state independent manner. Handler presented as next function:
+//!
+//! ```
+//! fn unhandled(&mut self, msg: &Message, ctx: &ActorContext, state: &State, data: &Data) -> HandleResult
+//! ```
+//!
+//! Signature is analogous for default receive function of an actor, but contains additional
+//! information about state and data, under which fsm was missed a message. Handler may be
+//! registered through this method:
+//!
+//! ```
+//! fsm.register_unhandled(Self::unhandled);
+//! ```
+//!
+//! ### State transitions
+//!
+//! You may execute some code in the moment when fsm will be change status. Handler of this
+//! situation have the next view:
+//!
+//! ```
+//! fn transition(&mut self, from: &State, to: &State)
+//! ```
+//!
+//! He contains in arguments link to the state from which fsm passes and a link to the state to
+//! which fsm goes. This handler may be registered with the next call:
+//!
+//! ```
+//! fsm.register_transition(Self::transition);
+//! ```
+//!
+//! ### Full example
+//!
+//! You can see the full example of how to use fsm in 'examples/actor/fsm'
+//!
+//! ### When you need to use FSM and when Futures?
+//!
+//! When you start a real world work with fsm, you may encounter with the strange question - why
+//! I need to use the fsm, if i may instead I use combined futures? I suffered from this issue
+//! many cont of times, but in the end, I was create some conception of when user fsm and when use
+//! futures. Here she is.
+//!
+//! Future - used when operation contains only lenear logic, less than three stage and it does not
+//! need information about states. Example - you need checks user permissions and based on this
+//! check, to request data from repository or not. All simple, two stage, no data between them and
+//! no branching.
+//!
+//! Fsm - used when operation shares data between states or she contains more than three stages or
+//! operation logic is non linear. Example. At first stage you request of authorisation data from the
+//! local caсhe. If he contains data about user, you go to stage three. If not, you start stage two -
+//! checking user permissions on a remote server. At stage thee you have user permissions check
+//! result. If it is privileged user, you requests to repository for getting version of data for
+//! privileged user. If not, you requests to repository for getting version of data for non-privileged
+//! user. At stage four, based on this data from the repository, you respond to the originator with
+//! some final result. Four stages, shared data between them and several scenarios.
 //!
 #[macro_use] pub mod message;
 pub mod prelude;
@@ -696,3 +815,4 @@ pub mod watcher;
 pub mod ask_actor;
 pub mod wrapped_dispatcher;
 pub mod stash;
+pub mod fsm;

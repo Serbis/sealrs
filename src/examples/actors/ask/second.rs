@@ -32,16 +32,16 @@ impl Second {
 
 impl Actor for Second {
 
-    fn receive(self: &mut Self, msg: Message, mut ctx: ActorContext) -> bool {
+    fn receive(self: &mut Self, msg: Message, mut ctx: ActorContext) -> HandleResult {
         let msg = msg.get();
         match_downcast_ref!(msg, {
             m: commands::GetResponse => {
                 let new_value = m.data + 100;
                 ctx.sender.tell(msg!(responses::Response { data: new_value}), Some(&ctx.self_));
             },
-            _ => return false
+            _ => return Ok(false)
         });
 
-        true
+        Ok(true)
     }
 }

@@ -128,11 +128,7 @@ impl AbstractTimers for StubTimers {
         unimplemented!()
     }
 
-    fn cancel(&mut self, key: u32) {
-        unimplemented!()
-    }
+    fn cancel(&mut self, key: u32) {}
 
-    fn cancel_all(&mut self) {
-        unimplemented!()
-    }
+    fn cancel_all(&mut self) {}
 }

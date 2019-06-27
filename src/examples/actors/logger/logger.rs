@@ -34,7 +34,7 @@ impl Logger {
 }
 
 impl Actor for Logger {
-    fn receive(self: &mut Self, msg: Message, ctx: ActorContext) -> bool {
+    fn receive(self: &mut Self, msg: Message, ctx: ActorContext) -> HandleResult {
         let msg = msg.get();
         match_downcast_ref!(msg, {
             m: Log => {
@@ -57,9 +57,9 @@ impl Actor for Logger {
                  println!("Stout logger write '{}' chars", m.chars_count);
                 self.chars_counter = self.chars_counter + m.chars_count;
             },
-            _ => return false
+            _ => return Ok(false)
         });
 
-        true
+        Ok(true)
     }
 }

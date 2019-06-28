@@ -3,6 +3,7 @@ use crate::actors::message::Message;
 use crate::actors::actor_context::ActorContext;
 use crate::actors::actor::HandleResult;
 use crate::actors::timers::{Timers, RealTimers, StubTimers};
+use crate::actors::actor::PoisonPill;
 use crate::common::tsafe::TSafe;
 use std::time::Duration;
 use std::collections::VecDeque;
@@ -144,6 +145,9 @@ impl <A, S: 'static + PartialEq + std::fmt::Debug + Clone + Send, D> Fsm<A, S, D
                     if m.state != self.state {
                         return Ok(true)
                     }
+                },
+                m: PoisonPill => {
+                    return Ok(false)
                 },
                 _ => ()
             });

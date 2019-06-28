@@ -1,3 +1,7 @@
+# 0.11.4
+
+# Added automatic PoisonPill handling in FSM
+
 # 0.11.3
 
 * Fixed bag in TestProbe which consist in that, when test code doest not call expectors, it will lead to the dispatcher deadlock

@@ -1,3 +1,7 @@
+# 0.11.3
+
+* Fixed bag in TestProbe which consist in that, when test code doest not call expectors, it will lead to the dispatcher deadlock
+
 # 0.11.2
 
 * Change in mutability of ActorContext in state handlers of fsm

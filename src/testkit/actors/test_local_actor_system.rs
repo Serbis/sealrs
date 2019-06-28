@@ -52,7 +52,7 @@ impl TestLocalActorSystem {
     pub fn new() -> TestLocalActorSystem {
 
         // ------- mirror ---------
-        let cpu_count = num_cpus::get();
+        let cpu_count = num_cpus::get() * 2;
         let def_dispatch = tsafe!(DefaultDispatcher::new(cpu_count as u32));
         let mut dispatchers: HashMap<String, TSafe<Dispatcher + Send>> = HashMap::new();
         dispatchers.insert(String::from("default"), def_dispatch.clone());

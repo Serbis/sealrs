@@ -253,6 +253,22 @@
 //! stdout_writer.expect_msg(type_matcher!(stdout_writer::Write));
 //! ```
 //!
+//! ### Use with caution
+//!
+//! TestProbe must always consume received message and and here's why. Internally any TestProbe
+//! presented as probe struct and actor which interact with target. Receive method of the test actor
+//! is synchronized with TestProbe creator thread through conditional variable. When he receive
+//! a message, he locks on this variable and wait, while test thread does not permits process this
+//! message. And now see on the next situation. You test some target, send message to it but next
+//! do nothing with TestProbe. Target actor receives sent message and respond with some other.
+//! Test actor receives this message and locks on condvar. Attentions - he fully lock dispatcher thread
+//! for wait unlocking from test thread. But this will doesn't happen, because you does not call
+//! any expector of this probe. Oops! You do step to deadlock of the system dispatcher. A few more such tricks
+//! and testing will be nothing more, all threads of the system will be blocked. This situation
+//! eliminates in two way. First - you mast always to call some expector of TestProbe (for example
+//! - expect_no_msg). Second - you must pack separate test cases in blocks of code, because when
+//! TestProbe will be dropped, he automatically unlocks condvar.
+//!
 //! # Helper macros
 //!
 //! In the testkit exists few macros which simplify some aspects of testing.

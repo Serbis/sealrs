@@ -484,6 +484,14 @@ impl TestProbe {
     }
 }
 
+impl Drop for TestProbe {
+    fn drop(&mut self) {
+        self.system.lock().unwrap().stop(&mut self.inner_actor.clone());
+        *self.actor_may_work.lock().unwrap() = true;
+        self.actor_cvar.notify_one();
+    }
+}
+
 /// Internal test actor
 ///
 /// This actor receive all messages, pass it through list of matchers functions, and create mapped

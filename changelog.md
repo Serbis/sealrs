@@ -1,3 +1,8 @@
+# 0.12.0
+
+* Error and hierarchy supervision
+* actor_select
+
 # 0.11.4
 
 # Added automatic PoisonPill handling in FSM

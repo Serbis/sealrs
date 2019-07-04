@@ -16,6 +16,7 @@
 //! 13. [Watching](#watching)
 //! 14. [Ask](#ask)
 //! 15. [FSM](#fsm)
+//! 16. [Supervision](#supervision)
 //!
 //!
 //! # Introduction
@@ -212,13 +213,17 @@
 //!
 //! # Lifetime hooks
 //! Actor has few lifetime hooks which may be used for various operations:
-//! * preStart - called after full actor initialization and before allowing reception of
+//! * pre_start - called after full actor initialization and before allowing reception of
 //! messages. At this stage already exists actor context, which may be used for creating new actors
 //! or sending message for himself. Also is available actor's internal state for mutating.
-//! * postStop - called after full stop of actor. This means, that all message passed to the actor
+//! * post_stop - called after full stop of actor. This means, that all message passed to the actor
 //! was processed or dropped and it will not receive any new messages further. This is the last
 //! point of interaction with internal actor's state. At this stage actor context also exists and
 //! may be user to perform various operations.
+//! * pre_fail - Called before some supervising operation will be started. Read more about what it
+//! in the special chapter.
+//! * post_restart - Called after actor was restarted. This may occurs if some supervision action
+//! occurs. Read more about what it in the special chapter.
 //!
 //! For example let's add this hooks to our basic actor:
 //!
@@ -789,7 +794,93 @@
 //! user. At stage four, based on this data from the repository, you respond to the originator with
 //! some final result. Four stages, shared data between them and several scenarios.
 //!
+//! # Supervision
+//!
+//! All actors in the system grouped to tree, in which each actor have one parent and zero or more
+//! children's. Supervision in the actor system relies on the two simple ideas. First idea consists
+//! is that lifetime of all child actors directly depends on lifetime of his parents. Second idea
+//! is that actor may be failed when process some message, and after that, system will take some
+//! actions for restore broken actor from this situation.
+//!
+//! ### Hierarchy
+//!
+//! As was said before, each actor have one parent and may have childs. At the top of all hierarchy
+//! placed Root Guardian - synthetic actor whose only task is to be parents for all actors which will
+//! be created through system.actor_of method. You may create an actor through another way:
+//!
+//! ```
+//! ctx.actor_of(some_actor::props(), Some("name"));
+//! ```
+//!
+//! In this code as ActorRef provider ActorContext is used. Actor from called this action, becomes
+//! as parent for created actor and his lifetime is fully depended on lifetime of his parent. How it
+//! work on practice. For example you have the next actors hierarchy - /root/A/B/C. If you will stop
+//! the A actor, it will cause to recursive stopping of actors B and C. What about root? Yes, he also
+//! may be stopped. This action occurs when you call system.terminate method. Before the handler will
+//! stops the dispatchers, he will stop the Root Guardian, what cause to stops of all actors in the
+//! hierarchy.
+//!
+//! ### actor_select
+//!
+//! Hierarchy of actors gives us some useful feature. You may obtain ActorRef's of actors placed
+//! in some leaf of the tree if you know them path.
+//!
+//! ```
+//! let selection = system.actor_select("/root/a/b");
+//! let b_ref = &mut selection[0];
+//! ```
+//!
+//! Call of acotor_select return the vector with found ActorRef's. This is the regular refs which will
+//! may be used as refs created through actor_of call.
+//!
+//! Need make a note, that actor_of is the some cost operation, because with searching of actor,
+//! code goes through all hierarchy of cells, what cause to locks. Based on that, what then
+//! deeper the target actor, than more expensive the search.
+//!
+//! ### Error recovery
+//!
+//! Message handler may completes with some error:
+//!
+//! ```
+//! fn receive(self: &mut Self, msg: Message, _ctx: ActorContext) -> HandleResult {
+//!     let msg = msg.get();
+//!     match_downcast_ref!(msg, {
+//!             m: HelloToC => {
+//!                 println!("Hello to some from the outside world!")
+//!             },
+//!             m: FailMe => {
+//!                 println!("CActor receive FailMe");
+//!                 return Err(err!("some err"))
+//!             },
+//!             _ => return Ok(false)
+//!         });
+//!
+//!     Ok(true)
+//! }
+//! ```
+//!
+//! This situation treated be system as signal that processed actor was faced with an insoluble
+//! error, and system must take some actions. This actions is called supervision operation and
+//! determined with supervision strategy. Exist four strategies:
+//!
+//! * Resume - do nothing, ignore occurred error
+//! * Stop - stop the actor
+//! * Restart - restart the actor (stop and start)
+//! * Escalate - lift this error to the parent of the actor
+//!
+//! All created actors has Restart strategy by default. Root Guardian and DeadLetters has Resume
+//! strategy. Strategy of a separate actor may be set up through Props object:
+//!
+//! ```
+//! let props = Props::new(tsafe!(SomeActor::new()))
+//!        .with_supervision_strategy(SupervisionStrategy::Escalate)
+//! ```
+//!
+//! Before starts of the supervision operation, pre_fail hook of the failed actor will be called.
+//! This hook contains the actor context, occurred error and current supervision strategy.
+//!
 #[macro_use] pub mod message;
+#[macro_use] pub mod error;
 pub mod prelude;
 pub mod dispatcher;
 pub mod default_dispatcher;
@@ -816,3 +907,4 @@ pub mod ask_actor;
 pub mod wrapped_dispatcher;
 pub mod stash;
 pub mod fsm;
+pub mod supervision;

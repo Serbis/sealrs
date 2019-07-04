@@ -5,6 +5,7 @@ use crate::actors::scheduler::Scheduler;
 use crate::actors::dispatcher::Dispatcher;
 use crate::common::tsafe::TSafe;
 use crate::executors::executor::Executor;
+use std::collections::HashMap;
 
 //TODO docs
 pub trait AbstractActorSystem: ActorRefFactory {
@@ -24,9 +25,14 @@ pub trait AbstractActorSystem: ActorRefFactory {
     /// Returns dispatcher by name
     fn get_dispatcher(&self, name: &str) -> TSafe<Dispatcher + Send>;
 
+    /// Returns dispatchers list
+    fn get_dispatchers(&self) -> TSafe<HashMap<String, TSafe<Dispatcher + Send>>>;
+
     /// Returns dispatcher by name as executor
     fn get_executor(&self, name: &str) -> TSafe<Executor + Send>;
 
+    /// Return actor auto name
+    fn get_nid(&mut self) -> String;
 }
 
 //TODO остановка акторной системы

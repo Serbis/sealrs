@@ -17,7 +17,10 @@ use crate::actors::abstract_actor_ref::ActorRef;
 use crate::actors::local_actor_ref::LocalActorRef;
 use crate::actors::watcher::WatchingEvents;
 use crate::actors::message::Message;
-
+use crate::actors::error::Error;
+use crate::actors::supervision::SupervisionStrategy;
+use std::collections::HashMap;
+use std::any::Any;
 
 pub struct ActorCell {
 
@@ -46,6 +49,15 @@ pub struct ActorCell {
 
     /// Stop flag. See the start method description for more details
     pub stopped: bool,
+
+    /// Parent actor cell of actor
+    pub parent: Option<TSafe<ActorCell>>,
+
+    /// Actor's childs
+    pub childs: HashMap<String, TSafe<ActorCell>>,
+
+    /// Actor's supervision strategy
+    pub supervision_strategy: SupervisionStrategy
 }
 
 impl ActorCell {
@@ -57,7 +69,9 @@ impl ActorCell {
         actor: TSafe<Actor + Send>,
         bid: usize,
         dispatcher: TSafe<Dispatcher + Send>,
-        mailbox: TSafe<Mailbox + Send>) -> ActorCell {
+        mailbox: TSafe<Mailbox + Send>,
+        parent: Option<TSafe<ActorCell>>,
+        supervision_strategy: SupervisionStrategy) -> ActorCell {
 
         ActorCell {
             actor,
@@ -67,36 +81,160 @@ impl ActorCell {
             path,
             system,
             suspended: false,
-            stopped: true
+            stopped: true,
+            parent,
+            childs: HashMap::new(),
+            supervision_strategy
+        }
+    }
+
+    /// Fail handler of actor. This method calls when message handler was completed with error.
+    /// Here code realize a supervision strategy of actor and decide what to do next.
+    pub fn fail(&mut self, err: Error, boxed_self: TSafe<ActorCell>) -> impl FnOnce() -> () {
+        //self.suspended = true;
+
+        let system = self.system.clone();
+        let path = self.path.clone();
+        let supervision_strategy = self.supervision_strategy.clone();
+
+        move || {
+            let self_: ActorRef =  Box::new(LocalActorRef::new(boxed_self.clone(), path));
+            let sender = system.lock().unwrap().dead_letters();
+            let system = system.clone();
+
+            let ctx = ActorContext::new(sender, self_.clone(), system, boxed_self.clone());
+
+            match supervision_strategy {
+                SupervisionStrategy::Resume => {
+                    let actor = {
+                        let boxed_self = boxed_self.lock().unwrap();
+                        boxed_self.actor.clone()
+                    };
+
+                    actor.lock().unwrap().pre_fail(ctx, err, SupervisionStrategy::Resume);
+                },
+                SupervisionStrategy::Restart => {
+                    let actor = {
+                        let boxed_self = boxed_self.lock().unwrap();
+                        boxed_self.actor.clone()
+                    };
+
+                    actor.lock().unwrap().pre_fail(ctx, err, SupervisionStrategy::Restart);
+                    let f = boxed_self.lock().unwrap().restart(boxed_self.clone());
+                    f();
+                },
+                SupervisionStrategy::Stop => {
+                    let actor = {
+                        let boxed_self = boxed_self.lock().unwrap();
+                        boxed_self.actor.clone()
+                    };
+
+                    actor.lock().unwrap().pre_fail(ctx, err, SupervisionStrategy::Stop);
+                    let f = boxed_self.lock().unwrap().stop(boxed_self.clone());
+                    f();
+                },
+                SupervisionStrategy::Escalate => {
+                    let (actor, parent) = {
+                        let boxed_self = boxed_self.lock().unwrap();
+                        (boxed_self.actor.clone(), boxed_self.parent.clone())
+                    };
+
+                    actor.lock().unwrap().pre_fail(ctx, err.clone(), SupervisionStrategy::Escalate);
+                    let parent = parent.unwrap();
+                    let f = parent.lock().unwrap().fail(err, parent.clone());
+                    f();
+                }
+            };
         }
     }
 
     /// Starts the actor. Creates him context, obtain bid form the dispatcher, run preStart hook
     /// and permits message receiving through dropping the stopped flag.
-    pub fn start(self: &mut Self, boxed_self: TSafe<ActorCell>) {
+    pub fn start(self: &mut Self, boxed_self: TSafe<ActorCell>) -> impl FnOnce() -> () {
         self.bid = self.dispatcher.lock().unwrap().obtain_bid();
         //println!("Bid = {}", self.bid);
 
-        let self_ =  Box::new(LocalActorRef::new(boxed_self, self.path.clone()));
+        let self_ =  Box::new(LocalActorRef::new(boxed_self.clone(), self.path.clone()));
         let sender = self.system.lock().unwrap().dead_letters();
         let system = self.system.clone();
 
-        let ctx = ActorContext::new(sender, self_, system);
-        self.actor.lock().unwrap().pre_start(ctx);
-        self.stopped = false;
+        let ctx = ActorContext::new(sender, self_, system, boxed_self.clone());
+
+        move || {
+            let actor = {
+                let boxed_self = boxed_self.lock().unwrap();
+                boxed_self.actor.clone()
+            };
+
+            actor.lock().unwrap().pre_start(ctx);
+            boxed_self.lock().unwrap().stopped = false;
+        }
+    }
+
+    pub fn restart(self: &mut Self, boxed_self: TSafe<ActorCell>) -> impl FnOnce() -> ()  {
+        let self_ =  Box::new(LocalActorRef::new(boxed_self.clone(), self.path.clone()));
+        let sender = self.system.lock().unwrap().dead_letters();
+        let system = self.system.clone();
+
+        let ctx = ActorContext::new(sender, self_, system, boxed_self.clone());
+
+        move || {
+            let f = {
+                let mut boxed_self_o = boxed_self.lock().unwrap();
+                let f = boxed_self_o.stop(boxed_self.clone());
+                f
+            };
+            f();
+
+            let f = {
+                let mut boxed_self_o = boxed_self.lock().unwrap();
+                let f = boxed_self_o.start(boxed_self.clone());
+                f
+            };
+            f();
+
+            let (actor, system) = {
+                let boxed_self = boxed_self.lock().unwrap();
+                (boxed_self.actor.clone(), boxed_self.system.clone())
+            };
+
+            actor.lock().unwrap().post_restart(ctx);
+        }
     }
 
     /// Stops the actor. Prohibits receiving new messages and calls the postStop hook.
-    pub fn stop(self: &mut Self, boxed_self: TSafe<ActorCell>) {
+    pub fn stop(self: &mut Self, boxed_self: TSafe<ActorCell>) -> impl FnOnce() -> () {
         self.stopped = true;
 
-        let self_: ActorRef =  Box::new(LocalActorRef::new(boxed_self, self.path.clone()));
+        //FIXME this is potential memory leak place! What happen if an actor is stopped but his mailbox is not empty?
+        //self.mailbox.lock().unwrap().clean_up();
+
+        // Stop all childs
+        for (path, cell) in self.childs.iter() {
+            let cell = cell.clone();
+            let boxed_cell = cell.clone();
+            let  f = cell.lock().unwrap().stop(boxed_cell);
+            f();
+        }
+        self.childs.clear();
+
+        let self_: ActorRef =  Box::new(LocalActorRef::new(boxed_self.clone(), self.path.clone()));
         let sender = self.system.lock().unwrap().dead_letters();
         let system = self.system.clone();
 
-        let ctx = ActorContext::new(sender, self_.clone(), system);
-        self.actor.lock().unwrap().post_stop(ctx);
-        self.system.lock().unwrap().register_watch_event(&self_, WatchingEvents::Terminated);
+        let ctx = ActorContext::new(sender, self_.clone(), system, boxed_self.clone());
+
+        move || {
+            let (actor, system) = {
+                let boxed_self = boxed_self.lock().unwrap();
+                (boxed_self.actor.clone(), boxed_self.system.clone())
+            };
+
+            actor.lock().unwrap().post_stop(ctx);
+            system.lock().unwrap().register_watch_event(&self_, WatchingEvents::Terminated);
+
+        }
+
     }
 
     /// Suspends the actor. Prohibits receiving new messages.

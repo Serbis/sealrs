@@ -13,13 +13,14 @@ This library have a very reach documentation with big count of examples and expl
 
 # New in release
 
-* Developed FSM module
+* Error and hierarchy supervision
+* actor_select
 
 See [changelog](https://github.com/Serbis/sealrs/blob/master/changelog.md) for info about new releases.
 
 # In the next release
 
-* Basic supervision
+* Interaction between systems through network
 
 # Developing stage info
 

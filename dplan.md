@@ -9,5 +9,4 @@
 * Become/Unbecome
 * BoundedMailbox
 * Extended future combinators
-* Basic supervision
 * Basic remoting

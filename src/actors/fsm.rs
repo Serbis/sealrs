@@ -1,5 +1,6 @@
 use crate::actors::abstract_actor_ref::ActorRef;
 use crate::actors::message::Message;
+use crate::actors::error::Error;
 use crate::actors::actor_context::ActorContext;
 use crate::actors::actor::HandleResult;
 use crate::actors::timers::{Timers, RealTimers, StubTimers};
@@ -11,7 +12,7 @@ use std::any::Any;
 use std::sync::{Arc, Mutex, MutexGuard};
 use match_downcast::*;
 
-pub type StateResult<A, S, D> = Result<FsmAction<A, S, D>, Box<Any + Send>>;
+pub type StateResult<A, S, D> = Result<FsmAction<A, S, D>, Error>;
 
 pub enum FsmAction<A, S, D> {
     Goto(S),

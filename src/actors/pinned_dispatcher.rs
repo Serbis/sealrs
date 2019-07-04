@@ -60,16 +60,22 @@ impl PinnedDispatcher {
                 let msg = envelope.message;
 
                 let handled = {
-                    let mut actor = actor.lock().unwrap();
-                    let ctx = ActorContext::new(
-                        sender.clone(),
-                        envelope.receiver.clone(),
-                        envelope.system.clone());
-                    let im = actor.receive(msg.clone(), ctx);
+                    let im = {
+                        let mut actor = actor.lock().unwrap();
+                        let ctx = ActorContext::new(
+                            sender.clone(),
+                            envelope.receiver.clone(),
+                            envelope.system.clone(),
+                            cell.clone());
+                        actor.receive(msg.clone(), ctx)
+                    };
+
                     if im.is_ok() {
                         im.ok().unwrap()
                     } else {
-                        false
+                        let f = cell.lock().unwrap().fail(im.err().unwrap(), cell.clone());
+                        f();
+                        true
                     }
                 };
 
@@ -92,13 +98,16 @@ impl PinnedDispatcher {
     pub fn internal_receive(mailbox: &TSafe<Mailbox + Send>, msg: Message, cell: &TSafe<ActorCell>) -> bool {
 
         if let Some(PoisonPill {}) = msg.get().downcast_ref::<PoisonPill>() {
-            let mut cell_u = cell.lock().unwrap();
-            cell_u.suspend();
-            // +++ cell.actor.timers().cancelAll();
-            let dead_letters = cell_u.system.lock().unwrap().dead_letters();
-            mailbox.lock().unwrap().clean_up(Box::new(LocalActorRef::new(cell.clone(), cell_u.path.clone())), dead_letters);
-            cell_u.stop(cell.clone());
-            cell_u.dispatcher.lock().unwrap().stop();
+            {
+                let mut cell_u = cell.lock().unwrap();
+                cell_u.suspend();
+                let dead_letters = cell_u.system.lock().unwrap().dead_letters();
+                mailbox.lock().unwrap().clean_up(Box::new(LocalActorRef::new(cell.clone(), cell_u.path.clone())), dead_letters);
+                cell_u.dispatcher.lock().unwrap().stop();
+            }
+
+            let f = cell.lock().unwrap().stop(cell.clone());
+            f();
         } else {
             return false
         }

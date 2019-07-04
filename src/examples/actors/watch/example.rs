@@ -11,6 +11,7 @@ pub fn run() {
     let mut target = system
         .actor_of(target::props(), Some("target"));
 
+
     // Create actor which will watch the rarget actor
     let mut watcher = system
         .actor_of(watcher::props(target.clone()), None);
@@ -25,7 +26,7 @@ pub fn run() {
 
     thread::sleep(Duration::from_secs(1));
 
-    system.stop(&mut watcher);
+    //system.stop(&mut watcher);
 
     thread::park();
 }

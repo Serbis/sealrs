@@ -1,3 +1,7 @@
+# 0.12.2
+
+* Fixed bug with deadlock in watch mechanism
+
 # 0.12.1
 
 * Fixed bug with panic at actor name generating in TestActorSystem

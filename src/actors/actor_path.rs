@@ -50,7 +50,9 @@ impl fmt::Display for ActorPath {
 impl PartialEq for ActorPath {
     fn eq(&self, other: &Self) -> bool {
         if self.parent.is_some() {
-            let p_eq = *self.parent.as_ref().unwrap().lock().unwrap() == *other.parent.as_ref().unwrap().lock().unwrap();
+            let p1 = self.parent.as_ref().unwrap().lock().unwrap().to_string();
+            let p2 = other.parent.as_ref().unwrap().lock().unwrap().to_string();
+            let p_eq = p1 == p2;
             p_eq  == true && self.name == other.name
         } else {
             self.name == other.name

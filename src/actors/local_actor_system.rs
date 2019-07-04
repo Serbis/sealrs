@@ -31,7 +31,7 @@ use std::sync::{Arc, Mutex};
 
 pub struct LocalActorSystem {
     /// Actors ids counter. His is used for set up actor name, if it was not be explicitly specified.
-    nids: usize,
+    nids: TSafe<usize>,
 
     /// Default dispatcher. Used if other dispatcher does not explicitly specified.
     dispatchers: TSafe<HashMap<String, TSafe<Dispatcher + Send>>>,
@@ -65,7 +65,7 @@ impl LocalActorSystem {
         let root_path = tsafe!(ActorPath::new("root", None));
 
         let mut system = LocalActorSystem {
-            nids: 0,
+            nids: tsafe!(0),
             dispatchers: tsafe!(dispatchers),
             dead_letters: None,
             root: None,
@@ -365,8 +365,9 @@ impl AbstractActorSystem for LocalActorSystem {
     }
 
     fn get_nid(&mut self) -> String {
-        let name = self.nids.to_string();
-        self.nids = self.nids + 1;
+        let mut nids = self.nids.lock().unwrap();
+        let name = nids.to_string();
+        *nids = *nids + 1;
 
         name
     }
@@ -390,7 +391,7 @@ impl Clone for LocalActorSystem {
         };
 
         LocalActorSystem {
-            nids: self.nids,
+            nids: self.nids.clone(),
             dispatchers: self.dispatchers.clone(),
             dead_letters: dead_letter, //self.dead_letters.clone()
             root,

@@ -1,3 +1,7 @@
+# 0.12.1
+
+* Fixed bug with panic at actor name generating in TestActorSystem
+
 # 0.12.0
 
 * Error and hierarchy supervision
@@ -9,7 +13,7 @@
 
 # 0.11.3
 
-* Fixed bag in TestProbe which consist in that, when test code doest not call expectors, it will lead to the dispatcher deadlock
+* Fixed bug in TestProbe which consist in that, when test code doest not call expectors, it will lead to the dispatcher deadlock
 
 # 0.11.2
 

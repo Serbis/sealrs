@@ -36,7 +36,7 @@ use std::collections::vec_deque::VecDeque;
 pub struct TestLocalActorSystem {
 
     // ------- mirror ---------
-    nids: usize,
+    nids: TSafe<usize>,
     dispatchers: TSafe<HashMap<String, TSafe<Dispatcher + Send>>>,
     dead_letters: Option<ActorRef>,
     scheduler: TSafe<Scheduler>,
@@ -65,7 +65,7 @@ impl TestLocalActorSystem {
 
 
         let mut system = TestLocalActorSystem {
-            nids: 0,
+            nids: tsafe!(0),
             dispatchers: tsafe!(dispatchers),
             dead_letters: None,
             root: None,
@@ -376,8 +376,9 @@ impl AbstractActorSystem for TestLocalActorSystem {
     }
 
     fn get_nid(&mut self) -> String {
-        let name = self.nids.to_string();
-        self.nids = self.nids + 1;
+        let mut nids = self.nids.lock().unwrap();
+        let name = nids.to_string();
+        *nids = *nids + 1;
 
         name
     }
@@ -400,7 +401,7 @@ impl Clone for TestLocalActorSystem {
 
 
         TestLocalActorSystem {
-            nids: self.nids,
+            nids: self.nids.clone(),
             dispatchers: self.dispatchers.clone(),
             dead_letters: dead_letter, //self.dead_letters.clone()
             root,

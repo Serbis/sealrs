@@ -1,6 +1,8 @@
 //! Prelude for actors testing
 
 pub use crate::actors::message::Message;
+pub use crate::actors::remoting::remote_actor_system::RemoteActorSystem;
+pub use crate::actors::remoting::network_actor_system::NetworkActorSystem;
 pub use crate::actors::local_actor_system::LocalActorSystem;
 pub use crate::actors::actor_ref_factory::ActorRefFactory;
 pub use crate::actors::actor::Actor;

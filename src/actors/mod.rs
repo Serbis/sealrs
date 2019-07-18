@@ -17,6 +17,7 @@
 //! 14. [Ask](#ask)
 //! 15. [FSM](#fsm)
 //! 16. [Supervision](#supervision)
+//! 17. [Remoting](#remoting)
 //!
 //!
 //! # Introduction
@@ -879,6 +880,91 @@
 //! Before starts of the supervision operation, pre_fail hook of the failed actor will be called.
 //! This hook contains the actor context, occurred error and current supervision strategy.
 //!
+//! # Remoting
+//!
+//! Remoting is the feature which concludes in opportunity of interaction between two actor systems
+//! through network. This systems may be blaced in one application, in separate applications on one
+//! or different physical machines. For now, realized next interaction features:
+//!
+//! * actor_select of actors on a remote actor system
+//! * message sending between actor systems
+//!
+//! Remoting is concluded in few concepts, described below.
+//!
+//! ## RemoteActorRef
+//!
+//! When you work with ordinary actor system, you will always interact with LocalActorRef. This
+//! type of refs works with internal actor representation in the system (actor cell). Whenever
+//! you will work with some type of remote systems, together with LocalActorRef you will be
+//! interact with RemoteActorRef. RemoteActorRef links instead of linked to cell, referenced
+//! to network connection in the system network controller. Practical work with this type of
+//! refs, no different from work with LocalActorRef, excluding some moments. You may read about
+//! them in the Delivery Guarantee paragraph.
+//!
+//! ## NetworkActorSystem
+//!
+//! This is a complete of LocalActorSystem clone with one small exception - she have controller
+//! of network connections which allow for other actor systems establish connection with her
+//! through network. Constructor of the system, receives the two additional arguments - bind
+//! address and link to a messages serializer. Bind address is a string which may be converted
+//! to the SocketAddr object. About a messages serializer you may read below.
+//!
+//! ## RemoteActorSystem
+//!
+//! This is the thin wrapper over network controller which allows you to interact with a remote
+//! actor system. You may think about her as domain oriented socket. She contains the same methods
+//! like her big sisters (Remote/LocalActorSystem), but actions which do this methods will be
+//! addressed to a remote system behind network connection. Constructor of this type of system
+//! receives three additional arguments - connection address of a remote system, messages
+//! serializer and host actor system. This system is always relies on a big actor system - local,
+//! remote or test actor system.
+//!
+//! ## MessageSerializer
+//!
+//! Since Rust, unlike platforms such as JVM, does not contain developed means of language
+//! reflection, you should explain to the library how to convert various messages into a
+//! byte representation and back. For this target, library present the special trait -
+//! MessageSerializer. Before moving on to further descriptions, should make the following
+//! remark. Library does not determine how you will be serialized finite message. You may use
+//! any type of serialization which will you like (json, protobuf, you own and etc).
+//! MessageSerializer is the trait with two mandatory methods - to_binary and from_binary.
+//! First method is receives a Message and must returns result with SerializationResult
+//! or SerializationError struct. SerializationResult have two fields - marker and blob. Field
+//! 'marker' is an unique number which can uniquely indicate this type of message. Field 'blob'
+//! must contain binary representation of an original message.  How you transform original message
+//! to binary array is your choice. SerializationError represents set of the standard failure
+//! situations, which may be occurs at this operation.
+//!
+//! The method from_binary is a mirror for the to_binary method. He receives marker number and
+//! blob and must return result with the Message or SerializationResult struct.
+//!
+//! ## Delivery guaranty
+//!
+//! When you work with local system, exists guarantee that a message passed to an actor will
+//! reach the recipient (of course if he was not accidentally stopped ). When working with remote
+//! system, this rule is does not work. It doesn't work, because many of thing may goes wrong -
+//! connection may be lost, may occurs routing error,  low quality level of transmission on physical
+//! level and many other bad things. In other words, passed message may does not reach the target
+//! and you should always keep this in mind. You must constructs remote services in the way that
+//! requests always have a reply message, which allows for you fixed the fact that message was
+//! really delivered to the target.
+//!
+//! Also need pay attention to that fact, that actor behind RemoteActorRef may be stopped, and you
+//! never know about it if you doesn't explicitly watch him.
+//!
+//! ## Blocking operations
+//!
+//! All method calls on RemoteActorRef, NetworkActorSystem and RemoteActorSystem have blocking IO
+//! operation nature. In other words, this calls may lock dispatcher thread if you will be call's
+//! them directly from an actor messages handler. As a consequence of this, exist only three places
+//! where you may invoke them safely - outside of the actor system space, in async future and in
+//! actor with pinned dispatcher.
+//!
+//! ## Practical usage
+//!
+//! How this technique may be used in practie you may see in 'examples/actor/remote'. First see to
+//! the mod.rs for to understand how this example works.
+//!
 #[macro_use] pub mod message;
 #[macro_use] pub mod error;
 pub mod prelude;
@@ -908,3 +994,4 @@ pub mod wrapped_dispatcher;
 pub mod stash;
 pub mod fsm;
 pub mod supervision;
+pub mod remoting;

@@ -12,7 +12,7 @@ use crate::actors::dispatcher::Dispatcher;
 use crate::actors::dead_letters::DeadLetters;
 use crate::actors::synthetic_actor::SyntheticActor;
 use crate::actors::unbound_mailbox::UnboundMailbox;
-use crate::actors::actor_ref_factory::ActorRefFactory;
+use crate::actors::actor_ref_factory::{ActorRefFactory, ActorSelectError};
 use crate::actors::abstract_actor_system::AbstractActorSystem;
 use crate::actors::local_actor_ref::LocalActorRef;
 use crate::actors::abstract_actor_ref::ActorRef;
@@ -23,6 +23,7 @@ use crate::actors::message::Message;
 use crate::actors::wrapped_dispatcher::WrappedDispatcher;
 use crate::actors::supervision::SupervisionStrategy;
 use crate::executors::executor::Executor;
+use crate::futures::future::{Future, WrappedFuture};
 use std::collections::hash_map::HashMap;
 use std::collections::vec_deque::VecDeque;
 use std::sync::{Arc, Mutex};
@@ -107,6 +108,7 @@ impl LocalActorSystem {
         //system.lock().unwrap().dead_letters = Some(Box::new(LocalActorRef::new(boxed_dlc.clone(), dlp)));
         system_safe.lock().unwrap().dead_letters = Some(Box::new(LocalActorRef::new(boxed_dlc.clone(), dlp.clone())));
         system.dead_letters = Some(Box::new(LocalActorRef::new(boxed_dlc.clone(), dlp.clone())));
+        system_safe.lock().unwrap().root = Some(root_safe.clone());
         system.root = Some(root_safe);
         boxed_dlc.lock().unwrap().start(boxed_dlc.clone());
 

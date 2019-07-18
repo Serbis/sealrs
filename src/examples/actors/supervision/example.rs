@@ -1,6 +1,7 @@
 use crate::actors::prelude::*;
 use crate::examples::actors::supervision::a_actor;
 use crate::examples::actors::supervision::c_actor;
+use crate::futures::future::WrappedFuture;
 use std::sync::{Mutex, Arc};
 use std::thread;
 use std::time::Duration;

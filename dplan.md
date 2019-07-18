@@ -1,4 +1,5 @@
 
+* Remote delivery guarantee (NotDelivered (ack from remote system with timeouts))
 * Streams
 
 * Batch messages processing
@@ -9,4 +10,3 @@
 * Become/Unbecome
 * BoundedMailbox
 * Extended future combinators
-* Basic remoting

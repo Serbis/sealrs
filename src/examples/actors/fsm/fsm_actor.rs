@@ -39,7 +39,7 @@ impl FsmActor {
         }
     }
 
-    pub fn state0(&mut self, msg: &Message, ctx: &mut ActorContext, data: &Data) -> StateResult<Self, State, Data> {
+    pub fn state0(&mut self, msg: &Message, ctx: &mut ActorContext, data: &mut Data) -> StateResult<Self, State, Data> {
         let msg = msg.get();
 
         match_downcast_ref!(msg, {
@@ -51,7 +51,7 @@ impl FsmActor {
         })
     }
 
-    pub fn state1(&mut self, msg: &Message, ctx: &mut ActorContext, data: &Data) -> StateResult<Self, State, Data> {
+    pub fn state1(&mut self, msg: &Message, ctx: &mut ActorContext, data: &mut Data) -> StateResult<Self, State, Data> {
         let msg = msg.get();
 
         match data {
@@ -73,7 +73,7 @@ impl FsmActor {
         }
     }
 
-    pub fn unhandled(&mut self, msg: &Message, ctx: &mut ActorContext, state: &State, data: &Data) -> HandleResult {
+    pub fn unhandled(&mut self, msg: &Message, ctx: &mut ActorContext, state: &State, data: &mut Data) -> HandleResult {
         println!("Unhandled message in state '{:?}' with data '{:?}'", state, data);
         Ok(true)
     }

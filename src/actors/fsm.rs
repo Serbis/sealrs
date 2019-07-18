@@ -30,7 +30,7 @@ pub struct StateTimeout<S> { state: S }
 struct Handler<A, S, D> {
     state: S,
     timeout: Duration,
-    f: Box<'static + Fn(&mut A, &Message, &mut ActorContext, &D) -> StateResult<A, S, D> + Send>
+    f: Box<'static + Fn(&mut A, &Message, &mut ActorContext, &mut D) -> StateResult<A, S, D> + Send>
 }
 
 pub struct FsmWrapper<A, S, D> {
@@ -39,13 +39,13 @@ pub struct FsmWrapper<A, S, D> {
 
 impl <A, S: 'static + PartialEq + std::fmt::Debug + Clone + Send, D> FsmWrapper<A, S, D> {
     pub fn register_handler<F>(&mut self, state: S, f: F, timeout: Duration)
-        where F: 'static + Fn(&mut A, &Message, &mut ActorContext, &D) -> StateResult<A, S, D> + Send
+        where F: 'static + Fn(&mut A, &Message, &mut ActorContext, &mut D) -> StateResult<A, S, D> + Send
     {
         self.inner.lock().unwrap().register_handler(state, f, timeout)
     }
 
     pub fn register_unhandled<F>(&mut self, f: F)
-        where F: 'static + Fn(&mut A, &Message, &mut ActorContext, &S, &D) -> HandleResult + Send
+        where F: 'static + Fn(&mut A, &Message, &mut ActorContext, &S, &mut D) -> HandleResult + Send
     {
         self.inner.lock().unwrap().register_unhandled(f)
     }
@@ -76,7 +76,7 @@ impl <A, S, D> Clone for FsmWrapper<A, S, D> {
 pub struct Fsm<A, S, D> {
     owner: Option<A>,
     handlers: Vec<Handler<A, S, D>>,
-    unhandled: Option<Box<'static + Fn(&mut A, &Message, &mut ActorContext, &S, &D) -> HandleResult + Send>>,
+    unhandled: Option<Box<'static + Fn(&mut A, &Message, &mut ActorContext, &S, &mut D) -> HandleResult + Send>>,
     transition: Option<Box<'static + Fn(&mut A, &S, &S) + Send>>,
     timers: Timers,
     state: S,
@@ -115,7 +115,7 @@ impl <A, S: 'static + PartialEq + std::fmt::Debug + Clone + Send, D> Fsm<A, S, D
     }
 
     pub fn register_handler<F>(&mut self, state: S, f: F, timeout: Duration)
-        where F: 'static + Fn(&mut A, &Message, &mut ActorContext, &D) -> StateResult<A, S, D> + Send
+        where F: 'static + Fn(&mut A, &Message, &mut ActorContext, &mut D) -> StateResult<A, S, D> + Send
     {
         self.handlers.push(Handler {
             state,
@@ -125,7 +125,7 @@ impl <A, S: 'static + PartialEq + std::fmt::Debug + Clone + Send, D> Fsm<A, S, D
     }
 
     pub fn register_unhandled<F>(&mut self, f: F)
-        where F: 'static + Fn(&mut A, &Message, &mut ActorContext, &S, &D) -> HandleResult + Send
+        where F: 'static + Fn(&mut A, &Message, &mut ActorContext, &S, &mut D) -> HandleResult + Send
     {
         self.unhandled = Some(Box::new(f))
     }
@@ -160,7 +160,7 @@ impl <A, S: 'static + PartialEq + std::fmt::Debug + Clone + Send, D> Fsm<A, S, D
         if handler.is_some() {
             let h = handler.unwrap();
             let f = &h.f;
-            let result: StateResult<A, S, D> = f(owner, &msg, &mut ctx, &self.data);
+            let result: StateResult<A, S, D> = f(owner, &msg, &mut ctx, &mut self.data);
 
             if result.is_ok() {
                 match result.ok().unwrap() {
@@ -201,7 +201,7 @@ impl <A, S: 'static + PartialEq + std::fmt::Debug + Clone + Send, D> Fsm<A, S, D
 
                         if self.unhandled.is_some() {
                             let f = self.unhandled.as_ref().unwrap();
-                            f(owner, &msg, &mut ctx, &self.state, &self.data)
+                            f(owner, &msg, &mut ctx, &self.state, &mut self.data)
                         } else {
                             Ok(false)
                         }

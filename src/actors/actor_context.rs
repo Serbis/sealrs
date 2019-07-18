@@ -2,7 +2,7 @@
 //!
 //! This object will constructs for each new message received by an actor
 use crate::actors::abstract_actor_system::AbstractActorSystem;
-use crate::actors::actor_ref_factory::ActorRefFactory;
+use crate::actors::actor_ref_factory::{ActorRefFactory, ActorSelectError};
 use crate::actors::abstract_actor_ref::ActorRef;
 use crate::actors::unbound_mailbox::UnboundMailbox;
 use crate::actors::actor_path::ActorPath;
@@ -12,6 +12,7 @@ use crate::actors::pinned_dispatcher::PinnedDispatcher;
 use crate::actors::props::Props;
 use crate::common::tsafe::TSafe;
 use crate::actors::dispatcher::Dispatcher;
+use crate::futures::future::{Future, WrappedFuture};
 use std::sync::{Mutex, Arc, MutexGuard};
 
 //pub struct WrappedCell {

@@ -13,5 +13,9 @@ pub use crate::actors::stash::{Stash, RealStash, StubStash};
 pub use crate::actors::abstract_actor_ref::ActorRef;
 pub use crate::actors::fsm::{Fsm, StateResult, FsmWrapper, StateTimeout};
 pub use crate::actors::supervision::SupervisionStrategy;
+pub use crate::actors::remoting::messages_serializer::{MessagesSerializer, SerializationError, SerializedMessage};
+pub use crate::actors::remoting::delivery_error::{DeliveryErrorReason, DeliveryError};
+pub use crate::actors::remoting::remote_actor_system::RemoteActorSystem;
+pub use crate::actors::remoting::network_actor_system::NetworkActorSystem;
 
 

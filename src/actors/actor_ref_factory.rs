@@ -1,5 +1,13 @@
 use crate::actors::props::Props;
 use crate::actors::abstract_actor_ref::ActorRef;
+use crate::futures::future::WrappedFuture;
+use crate::common::tsafe::TSafe;
+use std::any::Any;
+
+#[derive(Clone)]
+pub struct ActorSelectError {
+
+}
 
 //TODO docs
 pub trait ActorRefFactory {

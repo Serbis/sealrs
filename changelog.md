@@ -1,3 +1,8 @@
+# 0.13.0
+
+* Changed data mutability in FSM
+* Fixed bug with deadlock of dispatcher thread if message was unhandled
+
 # 0.12.2
 
 * Fixed bug with deadlock in watch mechanism

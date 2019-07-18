@@ -84,8 +84,10 @@ impl DefaultDispatcher {
                         let dead_letters = system.dead_letters();
                         dead_letters
                     };
-                    dead_letters.cell().lock().unwrap().send(&dead_letters.cell(), msg, Some(sender), envelope.receiver );
-
+                    let dc = dead_letters.cell();
+                    let mut dc = dc.lock().unwrap();
+                    dc.send(&dead_letters.cell(), msg, Some(sender), envelope.receiver );
+                    println!("xxx");
                 }
             }
         }

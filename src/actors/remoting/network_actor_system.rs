@@ -107,7 +107,7 @@ impl NetworkActorSystem {
 
         let dlp = tsafe!(ActorPath::new("deadLetters", Some(root_path.clone())));
         let dlm = DeadLetters::new();
-        let dlc = ActorCell::new(
+        let mut dlc = ActorCell::new(
             system_safe.clone(),
             dlp.clone(),
             tsafe!(SyntheticActor {}),
@@ -116,6 +116,8 @@ impl NetworkActorSystem {
             tsafe!(dlm),
             Some(root_safe.clone()),
             SupervisionStrategy::Resume);
+
+        dlc.stopped = false;
 
         let boxed_dlc = tsafe!(dlc);
 
@@ -334,7 +336,7 @@ impl AbstractActorSystem for NetworkActorSystem {
 
                 let dlp = tsafe!(ActorPath::new("deadLetters", Some(self.root_path.clone())));
                 let dlm = DeadLetters::new();
-                let dlc = ActorCell::new(
+                let mut dlc = ActorCell::new(
                     tsafe!(self.clone()),
                     dlp.clone(),
                     tsafe!(SyntheticActor {}),
@@ -343,6 +345,7 @@ impl AbstractActorSystem for NetworkActorSystem {
                     tsafe!(dlm),
                     Some(root_safe),
                     SupervisionStrategy::Resume);
+                dlc.stopped = false;
 
                 let boxed_dlc = tsafe!(dlc);
 

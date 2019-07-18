@@ -475,6 +475,12 @@ impl TestProbe {
         *self.matchers.lock().unwrap() = vec![matcher! { _v => true }];
         *self.match_results.lock().unwrap() = vec![None];
 
+        // Permits actor process messages
+        *self.actor_may_work.lock().unwrap() = true;
+
+        // Notify probe actor for unlock (if it was locked)
+        self.actor_cvar.notify_one();
+
         self.system.lock().unwrap().stop(&mut self.inner_actor);
     }
 

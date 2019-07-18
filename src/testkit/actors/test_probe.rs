@@ -13,6 +13,7 @@ use crate::actors::props::Props;
 use crate::actors::watcher::events::Terminated;
 use crate::actors::actor_context::ActorContext;
 use crate::actors::message::Message;
+use crate::actors::actor::PoisonPill;
 use std::sync::{Arc, Mutex, Condvar};
 use std::any::Any;
 use std::time::{ Duration, SystemTime };
@@ -468,6 +469,15 @@ impl TestProbe {
         //unwatch in drop and actor stop
     }
 
+    /// Stops the probe inner actor
+    pub fn stop(&mut self) {
+        // Set 'all' matcher
+        *self.matchers.lock().unwrap() = vec![matcher! { _v => true }];
+        *self.match_results.lock().unwrap() = vec![None];
+
+        self.system.lock().unwrap().stop(&mut self.inner_actor);
+    }
+
     /// Internal locker for awaiting messages from the internal actor or timeout
     fn lock(&mut self) {
         self.probe_cvar.wait( self.probe_cvar_m.lock().unwrap());
@@ -547,6 +557,14 @@ impl Actor for TestProbeActor {
             self.lock();
         }
         *self.actor_may_work.lock().unwrap() = false;
+
+        // If handled message is PoisonPill we must mark this message as unhandled
+        {
+            let msg = msg.get();
+            if let Some(m) = msg.downcast_ref::<PoisonPill>() {
+                return Ok(false);
+            }
+        }
 
         //Set the message sender
         *self.last_sender.lock().unwrap() = ctx.sender.clone();

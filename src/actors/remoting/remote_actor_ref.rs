@@ -1,3 +1,5 @@
+//! Actor reference which points to an actor in a remote actor system.
+
 use crate::common::tsafe::TSafe;
 use crate::actors::actor_cell::ActorCell;
 use crate::actors::abstract_actor_ref::{AbstractActorRef, ActorRef, AskTimeoutError};
@@ -24,6 +26,8 @@ pub struct RemoteActorRef {
     pub rarid: u32,
 
     pub path: TSafe<ActorPath>,
+
+    /// Network controller instance
     pub net_controller: TSafe<NetController + Send>
 }
 

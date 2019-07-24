@@ -1,3 +1,9 @@
+//! Server and client side connections.
+//!
+//! This is the border point between physical tcp network and abstraction of actor's. Connections
+//! works with a binary data from tcp streams. They parse packets from the network and sends new
+//! binary packets to her.
+
 use super::packet::Packet;
 use super::packet::PREAMBLE;
 use crate::common::tsafe::TSafe;

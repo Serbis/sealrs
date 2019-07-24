@@ -1,7 +1,8 @@
+//! Representation of the library's network packet
+
 use bytes::{BytesMut, Bytes, Buf, BufMut, BigEndian};
 use std::fmt;
 use std::io::{Cursor, SeekFrom, Seek};
-
 
 pub static PREAMBLE: u64 = 0x1f2f3f3f4f6f7f8f;
 

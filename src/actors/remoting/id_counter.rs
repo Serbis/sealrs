@@ -1,3 +1,5 @@
+/// Identifier counter with overflow control
+
 pub struct IdCounter {
     value: u32
 }

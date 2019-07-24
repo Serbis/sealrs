@@ -14,7 +14,7 @@ use crate::actors::watcher::events::Terminated;
 use crate::actors::actor_context::ActorContext;
 use crate::actors::message::Message;
 use crate::actors::actor::PoisonPill;
-use std::sync::{Arc, Mutex, Condvar};
+use std::sync::{Arc, Mutex, Condvar, MutexGuard};
 use std::any::Any;
 use std::time::{ Duration, SystemTime };
 use std::thread;
@@ -467,6 +467,11 @@ impl TestProbe {
     pub fn watch(&mut self, target: &ActorRef) {
         self.system.lock().unwrap().watch(&self.inner_actor, target);
         //unwatch in drop and actor stop
+    }
+
+    /// Returns the sender of the last received message.
+    pub fn get_last_sender(&self) -> MutexGuard<ActorRef> {
+        self.last_sender.lock().unwrap()
     }
 
     /// Stops the probe inner actor

@@ -1,3 +1,8 @@
+//! Actor system which may accept connections from other systems.
+//!
+//! She is fully clone of the LocalActorSystem, exclude that she has special network controller,
+//! allows cooperation between other systems though network.
+
 use crate::actors::actor_ref_factory::{ActorRefFactory, ActorSelectError};
 use crate::actors::abstract_actor_system::AbstractActorSystem;
 use crate::actors::props::Props;

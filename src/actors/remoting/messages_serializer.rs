@@ -1,3 +1,8 @@
+//! Message serializer trait
+//!
+//! This trait must be realized be any object which will be used as component of
+//! Remote/NetworkActorSystem.
+
 use crate::actors::message::Message;
 use std::fmt;
 

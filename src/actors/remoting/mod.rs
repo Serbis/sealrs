@@ -1,3 +1,5 @@
+//! All you need to work on the network
+
 pub mod connection;
 pub mod packet;
 pub mod remote_actor_ref;

@@ -1,3 +1,5 @@
+//! Server side connections acceptor
+
 use super::connection::{ConnectionData, ServerConnection};
 use super::packet::Packet;
 use crate::common::tsafe::TSafe;

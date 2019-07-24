@@ -883,8 +883,8 @@
 //! # Remoting
 //!
 //! Remoting is the feature which concludes in opportunity of interaction between two actor systems
-//! through network. This systems may be blaced in one application, in separate applications on one
-//! or different physical machines. For now, realized next interaction features:
+//! through network. This systems may be placed in one application, in separate applications on one
+//! or different physical machines. For now, realized the next interaction features:
 //!
 //! * actor_select of actors on a remote actor system
 //! * message sending between actor systems
@@ -896,7 +896,7 @@
 //! When you work with ordinary actor system, you will always interact with LocalActorRef. This
 //! type of refs works with internal actor representation in the system (actor cell). Whenever
 //! you will work with some type of remote systems, together with LocalActorRef you will be
-//! interact with RemoteActorRef. RemoteActorRef links instead of linked to cell, referenced
+//! interact with RemoteActorRef. RemoteActorRef instead of linked to cell, referenced
 //! to network connection in the system network controller. Practical work with this type of
 //! refs, no different from work with LocalActorRef, excluding some moments. You may read about
 //! them in the Delivery Guarantee paragraph.
@@ -913,7 +913,7 @@
 //!
 //! This is the thin wrapper over network controller which allows you to interact with a remote
 //! actor system. You may think about her as domain oriented socket. She contains the same methods
-//! like her big sisters (Remote/LocalActorSystem), but actions which do this methods will be
+//! like her big sisters (Network/Test/LocalActorSystem), but actions which do this methods will be
 //! addressed to a remote system behind network connection. Constructor of this type of system
 //! receives three additional arguments - connection address of a remote system, messages
 //! serializer and host actor system. This system is always relies on a big actor system - local,
@@ -925,10 +925,10 @@
 //! reflection, you should explain to the library how to convert various messages into a
 //! byte representation and back. For this target, library present the special trait -
 //! MessageSerializer. Before moving on to further descriptions, should make the following
-//! remark. Library does not determine how you will be serialized finite message. You may use
+//! remark. Library does not determine how you will be serialize finite message. You may use
 //! any type of serialization which will you like (json, protobuf, you own and etc).
 //! MessageSerializer is the trait with two mandatory methods - to_binary and from_binary.
-//! First method is receives a Message and must returns result with SerializationResult
+//! First method is receives a Message and must return result with SerializationResult
 //! or SerializationError struct. SerializationResult have two fields - marker and blob. Field
 //! 'marker' is an unique number which can uniquely indicate this type of message. Field 'blob'
 //! must contain binary representation of an original message.  How you transform original message
@@ -954,7 +954,7 @@
 //!
 //! ## Blocking operations
 //!
-//! All method calls on RemoteActorRef, NetworkActorSystem and RemoteActorSystem have blocking IO
+//! All method calls on RemoteActorRef and RemoteActorSystem have blocking IO
 //! operation nature. In other words, this calls may lock dispatcher thread if you will be call's
 //! them directly from an actor messages handler. As a consequence of this, exist only three places
 //! where you may invoke them safely - outside of the actor system space, in async future and in
@@ -962,8 +962,8 @@
 //!
 //! ## Practical usage
 //!
-//! How this technique may be used in practie you may see in 'examples/actor/remote'. First see to
-//! the mod.rs for to understand how this example works.
+//! How this technique may be used in practice you may see in 'examples/actor/remote'. First see to
+//! the mod.rs for to understand how this example is work.
 //!
 #[macro_use] pub mod message;
 #[macro_use] pub mod error;

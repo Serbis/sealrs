@@ -1,3 +1,8 @@
+//! Thin wrapper around a remote actor system.
+//!
+//! This actor system is used as improvised socket to a remote actor system. All operation performed
+//! on this system will be mirrored on a remote system.
+
 use crate::actors::actor_ref_factory::{ActorRefFactory, ActorSelectError};
 use crate::actors::abstract_actor_system::AbstractActorSystem;
 use crate::actors::props::Props;

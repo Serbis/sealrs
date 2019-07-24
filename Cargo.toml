@@ -1,6 +1,6 @@
 [package]
 name = "sealrs"
-version = "0.12.2"
+version = "0.13.0"
 authors = ["Oleg Vyalkin <ovvyalkin@gmail.com>"]
 edition = "2018"
 description = "Set of classic asynchronous primitives (Actors, Executors, Futures / Promises)"
@@ -32,4 +32,4 @@ serde = { version = "1.0.94", features = ["derive"] }
 
 
 [badges]
-maintenance = { status = "actively-developed" }
+maintenance = { status = "passively-maintained" }

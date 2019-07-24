@@ -1,3 +1,8 @@
+//! Local actor reference identifier and his watcher
+//!
+//! This object is the representation of a local actor reference for a remote connection.
+//! He is used as a binder between RemoteActorRef in a remote system and LocalActorRef in a local system.
+
 use crate::actors::prelude::*;
 use crate::actors::watcher::events::Terminated;
 use crate::common::tsafe::TSafe;

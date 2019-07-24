@@ -1,3 +1,5 @@
+/// Delivery errors
+
 #[derive(Debug)]
 pub struct DeliveryError {
     pub reason: DeliveryErrorReason

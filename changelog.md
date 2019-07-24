@@ -2,6 +2,9 @@
 
 * Changed data mutability in FSM
 * Fixed bug with deadlock of dispatcher thread if message was unhandled
+* Added stop method to TestProbe which allows to stop internal probe actor
+* Added get_last_sender method to the TestProbe
+* Realized basic remoting
 
 # 0.12.2
 

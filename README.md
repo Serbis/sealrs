@@ -13,15 +13,18 @@ This library have a very reach documentation with big count of examples and expl
 
 # New in release
 
-* Error and hierarchy supervision
-* actor_select
+* Changed data mutability in FSM
+* Fixed bug with deadlock of dispatcher thread if message was unhandled
+* Added stop method to TestProbe which allows to stop internal actor
+* Added get_last_sender method to TestProbe
+* Realized basic remoting (actor_select, message passing)
 
 See [changelog](https://github.com/Serbis/sealrs/blob/master/changelog.md) for info about new releases.
 
 # In the next release
 
-* Interaction between systems through network
+* Additional remoting feature
 
 # Developing stage info
 
-Starting with release 0.9.0 the library is translated from experimental to actively-developed stage. This change due to that main functionality of the library is developed and fixed most of critical bugs. Fow now this library is used for developing real microservices in my own project. Despite that fact, public api is not fully stable, and may be partially changed in future releases.
+At the moment, I have implemented almost all the necessary functionality for using this library as a framework for building web applications. In the short term, I do not plan strategic extensions of the functionality of this library with the exception of the expansion of existing functions and bug fixes.

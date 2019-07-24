@@ -123,6 +123,14 @@ impl ActorRefFactory for ActorContext {
     }
 
     fn stop(self: &mut Self, aref: &mut ActorRef) {
+        {
+            let mut root =  self.cell.lock().unwrap();
+            let aname = aref.path().name;
+            let exists = root.childs.get(&aname);
+            if exists.is_some() {
+                root.childs.remove(&aname);
+            }
+        }
         self.system().stop(aref);
     }
 

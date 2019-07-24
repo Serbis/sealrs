@@ -245,6 +245,16 @@ impl ActorRefFactory for LocalActorSystem {
     ///
     /// ```
     fn stop(self: &mut Self, aref: &mut ActorRef) {
+        // Remove from root childs
+        {
+            let mut root = self.root.as_ref().unwrap().lock().unwrap();
+            let aname = aref.path().name;
+            let exists = root.childs.get(&aname);
+            if exists.is_some() {
+                root.childs.remove(&aname);
+            }
+        }
+
         // Attention, identical code exists in the PoisonPill handler
         let aref_cpy0 = aref.clone();
         let aref_cpy1 = aref.clone();

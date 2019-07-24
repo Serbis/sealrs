@@ -1,3 +1,7 @@
+# 0.13.1
+
+* Fixed bug - when actor has stopped he was does not removed from child's list
+
 # 0.13.0
 
 * Changed data mutability in FSM

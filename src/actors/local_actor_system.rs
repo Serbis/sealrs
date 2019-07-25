@@ -172,7 +172,7 @@ impl ActorRefFactory for LocalActorSystem {
         };
 
         let cell = ActorCell::new(
-            self.clone(),
+            tsafe!(self.clone()),
             path.clone(),
             props.actor,
             0,

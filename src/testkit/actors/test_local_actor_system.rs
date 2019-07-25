@@ -184,7 +184,7 @@ impl ActorRefFactory for TestLocalActorSystem {
         };
 
         let cell = ActorCell::new(
-            self.boxed_self.as_ref().unwrap().clone(),
+            self.clone(),
             path.clone(),
             props.actor,
             0,

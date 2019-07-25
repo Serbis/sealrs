@@ -4,6 +4,7 @@ use crate::actors::abstract_actor_ref::ActorRef;
 use crate::actors::message::Message;
 use crate::actors::actor_context::ActorContext;
 use std::collections::VecDeque;
+use std::mem;
 
 pub type Stash = Box<AbstractStash + Send>;
 
@@ -14,6 +15,9 @@ pub trait AbstractStash {
 
     /// Flush all queue (each message will be resend to the stash owner actor)
     fn unstash_all(&mut self);
+
+    /// Stops self
+    fn stop(&mut self);
 }
 
 struct StashEnvelope {
@@ -22,7 +26,7 @@ struct StashEnvelope {
 }
 
 pub struct RealStash {
-    self_: ActorRef,
+    self_: Option<ActorRef>,
     queue: VecDeque<StashEnvelope>
 }
 
@@ -30,7 +34,7 @@ pub struct RealStash {
 impl RealStash {
     pub fn new(ctx: &ActorContext) -> Stash {
         let s = RealStash {
-            self_: ctx.self_.clone(),
+            self_: Some(ctx.self_.clone()),
             queue: VecDeque::new()
         };
 
@@ -50,10 +54,16 @@ impl AbstractStash for RealStash {
     }
 
     fn unstash_all(&mut self) {
+        let mut s = mem::replace(&mut self.self_, None).unwrap();
         while self.queue.len() > 0 {
             let envelope = self.queue.pop_front().unwrap();
-            self.self_.tell(envelope.message, Some(&envelope.sender));
+            s.tell(envelope.message, Some(&envelope.sender));
         }
+        self.self_ = Some(s);
+    }
+
+    fn stop(&mut self) {
+        self.self_ = None;
     }
 }
 
@@ -74,4 +84,6 @@ impl AbstractStash for StubStash {
     fn unstash_all(&mut self) {
         unimplemented!()
     }
+
+    fn stop(&mut self) { unimplemented!() }
 }

@@ -4,8 +4,8 @@
 
 extern crate failure;
 
-//#[macro_use] extern crate serde_json;
-//#[macro_use] extern crate serde;
+#[macro_use] extern crate serde_json;
+#[macro_use] extern crate serde;
 
 #[macro_use] extern crate match_downcast;
 #[macro_use] extern crate log;
@@ -13,9 +13,9 @@ extern crate failure;
 #[macro_use] pub mod actors;
 #[macro_use] pub mod testkit;
 pub mod executors;
-//pub mod exps;
+pub mod exps;
 pub mod futures;
-//pub mod examples;
+pub mod examples;
 
 
 

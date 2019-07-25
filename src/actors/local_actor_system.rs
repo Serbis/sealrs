@@ -52,7 +52,10 @@ pub struct LocalActorSystem {
     root: Option<TSafe<ActorCell>>,
 
     /// Path of the root guardian actor
-    root_path: TSafe<ActorPath>
+    root_path: TSafe<ActorPath>,
+
+    /// Boxed self object
+    boxed_self: Option<TSafe<LocalActorSystem>>
 }
 
 impl LocalActorSystem {
@@ -72,7 +75,8 @@ impl LocalActorSystem {
             root: None,
             root_path: root_path.clone(),
             scheduler: tsafe!(Scheduler::new()),
-            watcher: tsafe!(Watcher::new())
+            watcher: tsafe!(Watcher::new()),
+            boxed_self: None
         };
 
         let system_safe = tsafe!(system.clone());
@@ -111,6 +115,7 @@ impl LocalActorSystem {
         system.dead_letters = Some(Box::new(LocalActorRef::new(boxed_dlc.clone(), dlp.clone())));
         system_safe.lock().unwrap().root = Some(root_safe.clone());
         system.root = Some(root_safe);
+        system_safe.lock().unwrap().boxed_self = Some(system_safe.clone());
         boxed_dlc.lock().unwrap().start(boxed_dlc.clone());
 
         system
@@ -166,9 +171,8 @@ impl ActorRefFactory for LocalActorSystem {
             }
         };
 
-
         let cell = ActorCell::new(
-            tsafe!(self.clone()),
+            self.boxed_self.as_ref().unwrap().clone(),
             path.clone(),
             props.actor,
             0,
@@ -263,6 +267,7 @@ impl ActorRefFactory for LocalActorSystem {
         cell.suspend();
         cell.mailbox.lock().unwrap().clean_up(aref_cpy0, self.dead_letters());
         cell.force_send(aref.cell().clone(), msg!(PoisonPill {}), None, aref_cpy1);
+        self.boxed_self = None;
     }
 
     /// Return deadLetter actor reference
@@ -411,7 +416,8 @@ impl Clone for LocalActorSystem {
             root,
             root_path: self.root_path.clone(),
             scheduler: self.scheduler.clone(),
-            watcher: self.watcher.clone()
+            watcher: self.watcher.clone(),
+            boxed_self: self.boxed_self.clone()
         }
     }
 }

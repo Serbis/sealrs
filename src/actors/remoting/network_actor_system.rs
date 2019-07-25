@@ -73,6 +73,9 @@ pub struct NetworkActorSystem {
 
     /// Network controller
     controller: Option<TSafe<ServerNetController>>,
+
+    /// Boxed self object
+    boxed_self: Option<TSafe<NetworkActorSystem>>
 }
 
 impl NetworkActorSystem {
@@ -93,6 +96,7 @@ impl NetworkActorSystem {
             scheduler: tsafe!(Scheduler::new()),
             watcher: tsafe!(Watcher::new()),
             controller: None,
+            boxed_self: None
         };
 
         let system_safe = tsafe!(system.clone());
@@ -137,6 +141,7 @@ impl NetworkActorSystem {
         system_safe.lock().unwrap().controller = Some(net_controller.clone());
         system.controller = Some(net_controller);
         boxed_dlc.lock().unwrap().start(boxed_dlc.clone());
+        system_safe.lock().unwrap().boxed_self = Some(system_safe.clone());
 
         system
     }
@@ -189,7 +194,7 @@ impl ActorRefFactory for NetworkActorSystem {
 
 
         let cell = ActorCell::new(
-            tsafe!(self.clone()),
+            self.boxed_self.as_ref().unwrap().clone(),
             path.clone(),
             props.actor,
             0,
@@ -284,6 +289,7 @@ impl ActorRefFactory for NetworkActorSystem {
         cell.suspend();
         cell.mailbox.lock().unwrap().clean_up(aref_cpy0, self.dead_letters());
         cell.force_send(aref.cell().clone(), msg!(PoisonPill {}), None, aref_cpy1);
+        self.boxed_self = None;
     }
 
     /// Return deadLetter actor reference
@@ -435,7 +441,8 @@ impl Clone for NetworkActorSystem {
             root_path: self.root_path.clone(),
             scheduler: self.scheduler.clone(),
             watcher: self.watcher.clone(),
-            controller: self.controller.clone()
+            controller: self.controller.clone(),
+            boxed_self: self.boxed_self.clone()
         }
     }
 }

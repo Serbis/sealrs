@@ -44,6 +44,7 @@ pub struct TestLocalActorSystem {
     watcher: TSafe<Watcher>,
     root: Option<TSafe<ActorCell>>,
     root_path: TSafe<ActorPath>,
+    boxed_self: Option<TSafe<TestLocalActorSystem>>,
     // --------- end ----------
 
     sub: TSafe<Option<ActorRef>>
@@ -73,7 +74,8 @@ impl TestLocalActorSystem {
             root_path: root_path.clone(),
             scheduler: tsafe!(Scheduler::new()),
             watcher: tsafe!(Watcher::new()),
-            sub: tsafe!(None)
+            sub: tsafe!(None),
+            boxed_self: None
         };
 
         let system_safe = tsafe!(system.clone());
@@ -111,6 +113,7 @@ impl TestLocalActorSystem {
         system_safe.lock().unwrap().root = Some(root_safe.clone());
         system.root = Some(root_safe);
         boxed_dlc.lock().unwrap().start(boxed_dlc.clone());
+        system_safe.lock().unwrap().boxed_self = Some(system_safe.clone());
 
         system
         // --------- end ----------
@@ -181,7 +184,7 @@ impl ActorRefFactory for TestLocalActorSystem {
         };
 
         let cell = ActorCell::new(
-            tsafe!(self.clone()),
+            self.boxed_self.as_ref().unwrap().clone(),
             path.clone(),
             props.actor,
             0,
@@ -270,6 +273,7 @@ impl ActorRefFactory for TestLocalActorSystem {
         // +++ cell.actor.timers().cancelAll();
         cell.mailbox.lock().unwrap().clean_up(aref_cpy0, self.dead_letters());
         cell.force_send(aref.cell().clone(), msg!(PoisonPill {}), None, aref_cpy1);
+        self.boxed_self = None;
         // --------- end ----------
 
     }
@@ -421,7 +425,8 @@ impl Clone for TestLocalActorSystem {
             root_path: self.root_path.clone(),
             scheduler: self.scheduler.clone(),
             watcher: self.watcher.clone(),
-            sub: self.sub.clone()
+            sub: self.sub.clone(),
+            boxed_self: self.boxed_self.clone()
         }
     }
 }

@@ -138,10 +138,10 @@ impl NetworkActorSystem {
 
         let net_controller = tsafe!(ServerNetController::new(addr, system_safe.clone(), messages_serializer));
 
+        system_safe.lock().unwrap().boxed_self = Some(system_safe.clone());
         system_safe.lock().unwrap().controller = Some(net_controller.clone());
         system.controller = Some(net_controller);
         boxed_dlc.lock().unwrap().start(boxed_dlc.clone());
-        system_safe.lock().unwrap().boxed_self = Some(system_safe.clone());
 
         system
     }

@@ -21,12 +21,12 @@ log = "0.4.0"
 bytes = "0.4.12"
 arraydeque = "0.4.5"
 
-pretty_env_logger = "0.3.0"
-dotenv = "0.14.1"
-futures = "0.1.27"
-jsonrpc-http-server = "12.0.0"
-serde_json = "1.0"
-serde = { version = "1.0.94", features = ["derive"] }
+#pretty_env_logger = "0.3.0"
+#dotenv = "0.14.1"
+#futures = "0.1.27"
+#jsonrpc-http-server = "12.0.0"
+#serde_json = "1.0"
+#serde = { version = "1.0.94", features = ["derive"] }
 
 
 [dev-dependencies]

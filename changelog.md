@@ -1,3 +1,8 @@
+# 0.13.2
+
+* Added stop method to Stash
+* Added get_last_sender method to TestProbe
+
 # 0.13.1
 
 * Fixed bug - when actor has stopped he was does not removed from child's list

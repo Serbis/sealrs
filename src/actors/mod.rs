@@ -558,7 +558,14 @@
 //!
 //! self.stash.unstash_all();
 //! ```
+//! Need to pay strongly attention, that stash stores 'self' actor reference. This fact points to
+//! that you must always explicitly stop all stashes. If you don't do this, actor will does not be
+//! dropped, because ring dependency will be exist between stash and actor. You can destroy stash
+//! for example in the post_stop method:
 //!
+//! ```
+//! self.stash.stop();
+//! ```
 //! # Watching
 //!
 //! Each actor have special set of internal events. When event from this set occurs, it's passed
